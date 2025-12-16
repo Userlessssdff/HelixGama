@@ -158,7 +158,6 @@ class GameCollaborator(db.Model):
 
 # CREATE TABLES AFTER ALL MODELS ARE DEFINED
 with app.app_context():
-    db.drop_all()  # Add this line temporarily
     db.create_all()
     print("Database tables created successfully!")
 
