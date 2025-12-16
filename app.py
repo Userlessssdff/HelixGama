@@ -88,7 +88,7 @@ def check_content_safety(text):
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
     # Tier: 'free', 'starter', 'premium', 'developer', 'ultra'
     tier = db.Column(db.String(20), default='free')
