@@ -948,43 +948,49 @@
             else { bar.classList.replace('bg-green-500', 'bg-red-500'); bar.style.width = '10%'; }
         });
 
-        async function submitAuth() {
-            if(isApiBusy) return;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('auth-btn');
+      async function submitAuth() {
+    if(isApiBusy) return;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('auth-btn');
 
-            if(!email || !password) return Swal.fire({toast:true, position:'top-end', icon:'error', title:'Missing fields', background:'#222', color:'#fff'});
+    console.log('Auth attempt:', { email, password: '***' }); // DEBUG
 
-            isApiBusy = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESSING...';
-            try {
-                const res = await fetch(`/api/auth/${authMode}`, {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({email, password})
-                });
-                const data = await res.json();
+    if(!email || !password) return Swal.fire({toast:true, position:'top-end', icon:'error', title:'Missing fields', background:'#222', color:'#fff'});
 
-                if(data.success && data.require_verify) {
-                    document.getElementById('auth-form').classList.add('hidden');
-                    document.getElementById('verify-form').classList.remove('hidden');
-                    document.getElementById('auth-footer').classList.add('hidden'); // Hide footer during verify
-                    Swal.fire({toast:true, position:'top', icon:'info', title:'Verification Code Sent', text:'Check your inbox.', background:'#222', color:'#fff'});
-                } else if (data.success) {
-                    toggleAuth(false);
-                    await checkAuthStatus();
-                    Swal.fire({toast:true, position:'top', icon:'success', title:'Login Successful', background:'#222', color:'#fff'});
-                } else {
-                    Swal.fire({icon:'error', text: data.message, background:'#222', color:'#fff'});
-                }
-            } catch(e) {
-                console.error(e);
-                Swal.fire({icon:'error', text: 'A network error occurred.', background:'#222', color:'#fff'});
-            } finally {
-                isApiBusy = false;
-                btn.innerHTML = 'CONTINUE';
-            }
+    isApiBusy = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESSING...';
+    try {
+        const res = await fetch(`/api/auth/${authMode}`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({email, password})
+        });
+        const data = await res.json();
+        
+        console.log('Server response:', data); // DEBUG
+        console.log('Auth mode:', authMode); // DEBUG
+
+        if(data.success && data.require_verify) {
+            console.log('Showing verify form...'); // DEBUG
+            document.getElementById('auth-form').classList.add('hidden');
+            document.getElementById('verify-form').classList.remove('hidden');
+            document.getElementById('auth-footer').classList.add('hidden');
+            Swal.fire({toast:true, position:'top', icon:'info', title:'Verification Code Sent', text:'Check your inbox and server logs.', background:'#222', color:'#fff'});
+        } else if (data.success) {
+            toggleAuth(false);
+            await checkAuthStatus();
+            Swal.fire({toast:true, position:'top', icon:'success', title:'Login Successful', background:'#222', color:'#fff'});
+        } else {
+            Swal.fire({icon:'error', text: data.message, background:'#222', color:'#fff'});
         }
+    } catch(e) {
+        console.error('Auth error:', e);
+        Swal.fire({icon:'error', text: 'A network error occurred.', background:'#222', color:'#fff'});
+    } finally {
+        isApiBusy = false;
+        btn.innerHTML = 'CONTINUE';
+    }
+}
 
         // Feature 1: Submit Forgot Password
         async function submitForgot() {
