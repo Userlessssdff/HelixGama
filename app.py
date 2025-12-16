@@ -24,13 +24,17 @@ import json  # === AETHER FEATURE ADDITION: JSON Import ===
 load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+
+# FIX: Use DATABASE_URL if it exists (Render sets this automatically), otherwise use SQLALCHEMY_DATABASE_URI
+database_url = os.getenv('DATABASE_URL') or os.getenv('SQLALCHEMY_DATABASE_URI')
+# Fix: Render uses 'postgres://' but SQLAlchemy 1.4+ requires 'postgresql://'
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
-    print("Database tables created successfully!")
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -150,6 +154,12 @@ class GameCollaborator(db.Model):
     # New Columns for Invite System
     status = db.Column(db.String(20), default='pending')  # pending, accepted
     role = db.Column(db.String(20), default='admin')  # admin (edit only)
+
+
+# CREATE TABLES AFTER ALL MODELS ARE DEFINED
+with app.app_context():
+    db.create_all()
+    print("Database tables created successfully!")
 
 
 # --- UTILS & EMAIL ---
