@@ -169,44 +169,35 @@ def send_email(to_email, subject, body, code=None):
     user = os.getenv('EMAIL_SMTP_USER')
     password = os.getenv('EMAIL_SMTP_PASS')
 
-    # ALWAYS print the code to the terminal for easy testing
     if code:
         print(f"\n{'='*60}")
         print(f"[VERIFICATION CODE] To: {to_email}")
         print(f"[VERIFICATION CODE] Subject: {subject}")
         print(f"[VERIFICATION CODE] CODE: {code}")
         print(f"{'='*60}\n")
-    else:
-        print(f"\n[EMAIL] To: {to_email} | Subject: {subject}\n")
 
     if not host or not user or not password:
-        print(f"WARNING: SMTP not fully configured. Missing: host={bool(host)}, user={bool(user)}, pass={bool(password)}")
+        print(f"WARNING: SMTP not configured.")
         return True
 
     try:
-        print(f"Attempting SMTP connection to {host}:{os.getenv('EMAIL_SMTP_PORT', 587)}...")
+        print(f"Attempting SMTP_SSL connection to {host}:465...")
         msg = MIMEMultipart()
         msg['From'] = user
         msg['To'] = to_email
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
 
-        server = smtplib.SMTP(host, int(os.getenv('EMAIL_SMTP_PORT', 587)))
-        server.set_debuglevel(1)  # Enable debug output
-        server.starttls()
-        print(f"Logging in as {user}...")
+        # Use SMTP_SSL instead of SMTP
+        server = smtplib.SMTP_SSL(host, 465)
         server.login(user, password)
-        print("Login successful! Sending message...")
         server.send_message(msg)
         server.quit()
         print("Email sent successfully!")
         return True
     except Exception as e:
-        print(f"SMTP Email Error: {type(e).__name__}: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"SMTP Error: {type(e).__name__}: {e}")
         return False
-
 def generate_code():
     return ''.join(random.choices(string.digits, k=6))
 
