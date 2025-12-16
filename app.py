@@ -316,16 +316,27 @@ def get_remaining_uses(user, model_type):
 
 # --- ADMIN OVERRIDE HELPER ---
 def apply_admin_overrides(user):
+    """
+    Applies admin override from upgrades_allowlist.json.
+    If user is not in the allowlist, their tier resets to "free".
+    """
     try:
+        allowlist = {}
         if os.path.exists('upgrades_allowlist.json'):
             with open('upgrades_allowlist.json', 'r') as f:
                 allowlist = json.load(f)
-                if user.email in allowlist:
-                    override_tier = allowlist[user.email]
-                    if user.tier != override_tier:
-                        user.tier = override_tier
-                        db.session.commit()
-                        print(f"Admin Override Applied: {user.email} -> {override_tier}")
+
+        if user.email in allowlist:
+            override_tier = allowlist[user.email]
+            if user.tier != override_tier:
+                user.tier = override_tier
+                db.session.commit()
+                print(f"Admin Override Applied: {user.email} -> {override_tier}")
+        else:
+            if user.tier != "free":
+                user.tier = "free"
+                db.session.commit()
+                print(f"Admin Override Removed: {user.email} -> free")
     except Exception as e:
         print(f"Override Error: {e}")
 
@@ -333,9 +344,22 @@ def apply_admin_overrides(user):
 @login_manager.user_loader
 def load_user(user_id):
     u = User.query.get(int(user_id))
-    if u: apply_admin_overrides(u)
+    if u:
+        apply_admin_overrides(u)
     return u
 
+
+# --- FLASK-LOGIN USER LOADER ---
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        u = User.query.get(int(user_id))
+        if u:
+            apply_admin_overrides(u)
+        return u
+    except Exception as e:
+        print(f"Load User Error: {e}")
+        return None
 
 # --- ROUTES: AUTHENTICATION ---
 
