@@ -171,15 +171,20 @@ def send_email(to_email, subject, body, code=None):
 
     # ALWAYS print the code to the terminal for easy testing
     if code:
-        print(f"\n[AETHER CODE SENT] To: {to_email} | Subject: {subject} | CODE: {code}\n")
+        print(f"\n{'='*60}")
+        print(f"[VERIFICATION CODE] To: {to_email}")
+        print(f"[VERIFICATION CODE] Subject: {subject}")
+        print(f"[VERIFICATION CODE] CODE: {code}")
+        print(f"{'='*60}\n")
     else:
-        print(f"\n[AETHER EMAIL] To: {to_email} | Subject: {subject}\n")
+        print(f"\n[EMAIL] To: {to_email} | Subject: {subject}\n")
 
-    if not host or not user:
-        # If SMTP is not configured, we silently pass but print the code
+    if not host or not user or not password:
+        print(f"WARNING: SMTP not fully configured. Missing: host={bool(host)}, user={bool(user)}, pass={bool(password)}")
         return True
 
     try:
+        print(f"Attempting SMTP connection to {host}:{os.getenv('EMAIL_SMTP_PORT', 587)}...")
         msg = MIMEMultipart()
         msg['From'] = user
         msg['To'] = to_email
@@ -187,15 +192,20 @@ def send_email(to_email, subject, body, code=None):
         msg.attach(MIMEText(body, 'plain'))
 
         server = smtplib.SMTP(host, int(os.getenv('EMAIL_SMTP_PORT', 587)))
+        server.set_debuglevel(1)  # Enable debug output
         server.starttls()
+        print(f"Logging in as {user}...")
         server.login(user, password)
+        print("Login successful! Sending message...")
         server.send_message(msg)
         server.quit()
+        print("Email sent successfully!")
         return True
     except Exception as e:
-        print(f"SMTP Email Error: {e}")
+        print(f"SMTP Email Error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
-
 
 def generate_code():
     return ''.join(random.choices(string.digits, k=6))
