@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER | AI Game Engine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+      rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --glass-bg: rgba(18, 18, 24, 0.85);
+        }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #050505;
+            color: #fff;
+            overflow-x: hidden;
+            height: 100vh;
+            scroll-behavior: smooth;
+        }
+        .font-cyber { font-family: 'Orbitron', sans-serif; }
+
+        /* Scrollbars (Smoother) */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f13; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; transition: background 0.3s ease; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-blue); }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Hover & Transition Utility Class */
+        /* BUTTON FIXES: Hitbox and Smoothness */
+        button, .btn {
+            outline: none !important;
+            border: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        button:active {
+             transform: scale(0.98);
+        }
+        .smooth-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .smooth-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 243, 255, 0.15);
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none !important;
+            box-shadow: none !important;
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes pulse-scan {
+            0% { opacity: 0.3; transform: scaleX(0.1); }
+            50% { opacity: 1; transform: scaleX(1); }
+            100% { opacity: 0.3; transform: scaleX(0.1); }
+        }
+
+        /* === AETHER FEATURE ADDITION: Loader Spinner === */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .iframe-loader {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--neon-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .neural-link-bar {
+            width: 300px; height: 4px; background: #1f2937; position: relative; overflow: hidden;
+        }
+        .neural-link-scan {
+            position: absolute; top: 0; left: 0; height: 100%; width: 100%;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            transform-origin: left; animation: pulse-scan 1.5s ease-in-out infinite;
+        }
+
+        /* Background Video */
+        #bg-video {
+            position: fixed; right: 0; bottom: 0; min-width: 100%; min-height: 100%;
+            z-index: -1; filter: brightness(0.3) blur(3px); object-fit: cover;
+        }
+
+        /* Page Management */
+        /* === AETHER FIX: Ensure pages are strictly hidden by default === */
+        .page {
+            display: none !important; /* Force hide by default */
+            width: 100%; height: 100%;
+            flex-direction: column; overflow-y: auto;
+        }
+        .page.active {
+            display: flex !important; /* Only explicit active class shows content */
+        }
+
+        /* Game Frame View Modes for smoother switching */
+        .game-frame-pc {
+            /* Width controlled by JS now, default 100% */
+            height: 100%;
+            border-radius: 0;
+            box-shadow: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .game-frame-phone {
+            width: 375px !important; /* Force mobile width */
+            height: 667px;
+            max-height: 90vh;
+            max-width: 90vw;
+            border-radius: 25px;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
+            border: 8px solid #000;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Enhanced input focus (Smoother) */
+        .focus-input:focus {
+             border-color: var(--neon-blue);
+             box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+             transform: scale(1.005);
+             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Edit Chips */
+        .edit-chip {
+            font-size: 0.75rem;
+            padding: 6px 10px;
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #ccc;
+            white-space: nowrap;
+        }
+        .edit-chip:hover {
+            background: rgba(0, 243, 255, 0.2);
+            color: #fff;
+            border-color: var(--neon-blue);
+        }
+
+        /* === AETHER FEATURE ADDITION START === */
+        /* Range Slider Styling for Settings */
+        .aether-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 4px;
+            outline: none;
+        }
+        .aether-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+        /* Watermark */
+        .aether-watermark {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: rgba(255,255,255,0.7);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            pointer-events: none;
+            z-index: 50;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        /* Global App Loader */
+        #app-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* VISUAL EDITOR STYLES */
+        .visual-edit-active {
+            border: 2px solid var(--neon-purple);
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.3) inset;
+        }
+        .prop-row {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;
+        }
+        .prop-label {
+            font-size: 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .prop-input {
+            background: #111; border: 1px solid #333; color: white; padding: 2px 6px; font-size: 0.8rem; border-radius: 4px; width: 80px; text-align: right;
+        }
+
+        /* FEATURE 7: Billing Toggle Switch */
+        .billing-toggle {
+            position: relative; width: 200px; height: 40px; background: #1f2937; border-radius: 20px; padding: 4px; display: flex; cursor: pointer; border: 1px solid #374151;
+        }
+        .billing-toggle-pill {
+            position: absolute; left: 4px; top: 4px; width: 50%; height: 32px; background: var(--neon-blue); border-radius: 16px; transition: all 0.3s;
+        }
+        .billing-toggle.yearly .billing-toggle-pill { left: 50%; transform: translateX(-4px); }
+        .billing-option {
+            flex: 1; text-align: center; z-index: 10; line-height: 32px; font-size: 12px; font-weight: bold; color: #aaa; transition: 0.3s;
+        }
+        .billing-toggle:not(.yearly) .opt-monthly { color: black; }
+        .billing-toggle.yearly .opt-yearly { color: black; }
+
+        /* New Loader & Fade Classes */
+        .opacity-0 { opacity: 0; }
+        .opacity-100 { opacity: 1; }
+        .transition-opacity { transition: opacity 0.5s ease-in-out; }
+        .pointer-events-none { pointer-events: none; }
+
+        /* Model Selector Smoothness */
+        #model-selector-container div {
+            transition: all 0.3s ease-in-out;
+        }
+        /* === AETHER FEATURE ADDITION END === */
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-black flex flex-col h-screen overflow-hidden">
+
+    <div id="app-loader">
+        <div class="flex flex-col items-center">
+            <div class="iframe-loader mb-4"></div>
+            <p class="font-cyber text-cyan-400 text-sm tracking-widest animate-pulse">INITIALIZING AETHER...</p>
+        </div>
+    </div>
+
+    <video autoplay muted loop id="bg-video">
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4" type="video/mp4">
+    </video>
+
+    <div id="loading-screen">
+        <h1 class="font-cyber text-4xl mb-6 text-cyan-400 animate-pulse">GENERATING SYSTEM</h1>
+        <div class="neural-link-bar mb-2"><div class="neural-link-scan"></div></div>
+        <p class="text-gray-500 font-mono text-xs" id="loading-message">CONNECTING TO NEURAL CORE...</p>
+    </div>
+
+    <nav class="h-16 glass-panel border-b border-gray-800 flex items-center justify-between px-6 shrink-0 z-50">
+        <div class="flex items-center cursor-pointer hover:opacity-80 smooth-hover" onclick="showPage('hero-section')">
+            <i class="fa-solid fa-cube text-cyan-400 text-2xl mr-3"></i>
+            <span class="font-cyber text-xl font-bold tracking-widest text-white">AETHER<span class="text-cyan-400">.AI</span></span>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <button onclick="showPage('gallery-page')" class="text-sm font-medium text-gray-300 hover:text-cyan-400 smooth-hover">PUBLIC GALLERY</button>
+            <div id="nav-links" class="flex gap-6 items-center text-sm font-medium"></div>
+        </div>
+        </nav>
+
+    <div id="app-container" class="flex-1 relative overflow-hidden h-full">
+
+        <div id="hero-section" class="page active items-center justify-start overflow-y-auto p-4 flex-col">
+            <div class="text-center max-w-4xl w-full mt-20">
+                <h1 class="text-5xl md:text-7xl font-cyber font-bold mb-6 tracking-tighter text-white">
+                    BUILD YOUR <span class="text-cyan-400">UNIVERSE</span>
+                </h1>
+                <p class="text-xl text-gray-400 mb-10 font-light">
+                    Describe any game. Play it instantly. Edit with AI.
+                </p>
+
+                <div class="glass-panel p-2 rounded-full flex items-center w-full relative z-20">
+                    <div id="model-selector-container" class="bg-gray-900 rounded-l-full border-r border-gray-700 hidden md:flex items-center px-2">
+                        </div>
+                    <select id="hero-model-select" class="hidden">
+                        <option value="flash">Flash</option>
+                        <option value="pro">Pro</option>
+                    </select>
+
+                    <input type="text" id="game-prompt" placeholder="Ex: A space shooter where you defend earth from asteroids..."
+                        class="bg-transparent border-none w-full text-white px-6 py-4 focus:outline-none text-lg placeholder-gray-600">
+                    <button id="generate-btn" onclick="initiateBuild()"
+                        class="bg-gradient-to-r from-cyan-600 to-blue-700 text-white rounded-full px-10 py-4 font-bold tracking-wider smooth-hover flex items-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                        GENERATE <i class="fas fa-bolt ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="max-w-7xl mx-auto w-full mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 pb-20">
+                <div class="glass-panel p-8 rounded-xl border border-gray-700 smooth-hover">
+                    <i class="fas fa-magic text-cyan-400 text-3xl mb-4"></i>
+                    <h3 class="font-cyber text-xl mb-2">Instant Generation</h3>
+                    <p class="text-gray-400 text-sm">Our neural engine converts text descriptions into playable HTML5 code in seconds.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-xl border border-gray-700 smooth-hover">
+                    <i class="fas fa-users text-purple-400 text-3xl mb-4"></i>
+                    <h3 class="font-cyber text-xl mb-2">Team Collaboration</h3>
+                    <p class="text-gray-400 text-sm">Invite friends to playtest, edit, and build together in real-time.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-xl border border-gray-700 smooth-hover">
+                    <i class="fas fa-shield-alt text-green-400 text-3xl mb-4"></i>
+                    <h3 class="font-cyber text-xl mb-2">Secure & Private</h3>
+                    <p class="text-gray-400 text-sm">Enterprise-grade security. Your projects are private by default until you share.</p>
+                </div>
+            </div>
+
+            <footer class="w-full mt-auto py-8 border-t border-gray-800 text-center text-xs text-gray-500">
+                <div class="flex justify-center gap-6 mb-4">
+                    <button onclick="showPage('tos-page')" class="hover:text-cyan-400">Terms of Service</button>
+                    <button onclick="showPage('privacy-page')" class="hover:text-cyan-400">Privacy Policy</button>
+                    <button onclick="showPage('contact-page')" class="hover:text-cyan-400">Contact Us</button>
+                </div>
+                <p>&copy; 2025 AETHER.AI. All rights reserved.</p>
+            </footer>
+        </div>
+
+        <div id="builder-ui" class="page hidden flex-row h-full">
+
+            <div class="flex-1 flex flex-col bg-black relative border-r border-gray-800">
+                <div class="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 shrink-0">
+                    <div class="flex items-center gap-2 overflow-hidden max-w-[30%]">
+                        <div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+                        <span class="ml-3 text-sm font-mono text-gray-400 uppercase tracking-wider truncate cursor-pointer hover:text-white" onclick="showMetadataModal()" id="game-title-display">Untitled Project</span>
+                         <button onclick="showMetadataModal()" class="text-gray-500 hover:text-cyan-400 text-xs ml-1"><i class="fas fa-pen"></i></button>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <button id="like-btn" onclick="likeCurrentGame()" class="hidden text-gray-500 hover:text-red-500 smooth-hover mr-2">
+                             <i class="fas fa-heart"></i> <span id="like-count-display" class="text-xs ml-1"></span>
+                        </button>
+
+                        <button id="team-btn" onclick="showTeamModal()" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-500 text-blue-300 hover:bg-blue-900/50 smooth-hover text-xs font-bold">
+                            <i class="fas fa-users"></i> TEAM
+                        </button>
+
+                        <button id="visual-edit-btn" onclick="toggleVisualEditor()" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-gray-800 border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white smooth-hover text-xs font-bold transition-all">
+                            <i class="fas fa-mouse-pointer"></i> VISUAL EDIT
+                        </button>
+
+                        <button id="magic-btn" onclick="document.getElementById('ai-input').focus()" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-purple-900/30 border border-purple-500 text-purple-300 hover:bg-purple-900/50 smooth-hover text-xs font-bold">
+                            <i class="fas fa-magic"></i> MAGIC EDIT
+                        </button>
+
+                        <div class="flex bg-gray-800 rounded-full p-1 text-xs font-bold text-gray-400">
+                            <button id="undo-btn" onclick="undo()" class="px-3 py-1 rounded-full text-gray-600 smooth-hover disabled:opacity-50" disabled>
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <button id="redo-btn" onclick="redo()" class="px-3 py-1 rounded-full text-gray-600 smooth-hover disabled:opacity-50" disabled>
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex bg-gray-800 rounded-full p-1 text-xs font-bold text-gray-400">
+                            <button id="view-pc-btn" onclick="setViewMode('pc')" class="px-3 py-1 rounded-full bg-cyan-600 text-white smooth-hover">
+                                <i class="fas fa-desktop mr-1"></i>
+                            </button>
+                            <button id="view-phone-btn" onclick="setViewMode('phone')" class="px-3 py-1 rounded-full hover:bg-gray-700 smooth-hover">
+                                <i class="fas fa-mobile-alt mr-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="public-toggle-btn" onclick="togglePublicStatus()" class="hidden text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded smooth-hover"><i class="fas fa-lock mr-1"></i> PRIVATE</button>
+                        <button onclick="shareGame()" class="text-xs bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded smooth-hover"><i class="fas fa-share-alt mr-1"></i> SHARE</button>
+                        <button id="download-btn" onclick="showDownloadModal()" class="text-xs bg-cyan-900/30 text-cyan-400 border border-cyan-800 px-3 py-2 rounded smooth-hover hover:bg-cyan-900/50 hover:text-white"><i class="fas fa-download mr-1"></i> DOWNLOAD</button>
+                    </div>
+                </div>
+
+                <div id="game-wrapper" class="flex-1 relative w-full h-full bg-[#111] flex items-center justify-center overflow-hidden">
+                    </div>
+            </div>
+
+            <div class="w-[350px] flex flex-col glass-panel border-l border-gray-800 shrink-0 relative transition-all duration-300" id="editor-sidebar">
+
+                <div id="visual-editor-panel" class="absolute inset-0 bg-[#0a0a0f] z-20 transform translate-x-full transition-transform duration-300 flex flex-col">
+                    <div class="flex border-b border-gray-700 p-2 items-center bg-gray-800/80">
+                         <div class="flex-1 text-sm font-bold text-neon-purple font-cyber tracking-wider pl-2">
+                            <i class="fas fa-sliders-h mr-2"></i>VISUAL EDITOR
+                        </div>
+                        <button onclick="toggleVisualEditor()" class="text-gray-400 hover:text-white p-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 p-4 overflow-y-auto" id="visual-props-content">
+
+                        <div class="mb-4 p-3 bg-gray-800/80 rounded-lg border border-gray-600">
+                             <h4 class="text-xs font-bold text-gray-300 mb-2">DESKTOP WIDTH (%)</h4>
+                             <div class="flex items-center gap-2">
+                                <i class="fas fa-arrows-alt-h text-gray-500 text-xs"></i>
+                                <input type="range" min="30" max="100" value="100" class="aether-slider" oninput="updateGameWidth(this.value)">
+                                <span class="text-[10px] text-cyan-400 font-mono w-8 text-right" id="width-display">100%</span>
+                             </div>
+                        </div>
+
+                        <div class="mb-6 p-3 bg-gray-800/80 rounded-lg border border-gray-600">
+                             <h4 class="text-xs font-bold text-gray-300 mb-3 border-b border-gray-600 pb-1">GAME TIME SCALE</h4>
+                             <div class="flex items-center justify-between mb-1">
+                                 <span class="text-[10px] text-gray-400">SLOW</span>
+                                 <span class="text-[10px] text-cyan-400 font-bold" id="speed-display">1.0x</span>
+                                 <span class="text-[10px] text-gray-400">FAST</span>
+                             </div>
+                             <input type="range" min="0.1" max="3.0" step="0.1" value="1.0" class="aether-slider" oninput="updateGameSpeed(this.value)">
+                        </div>
+
+                        <div id="no-selection-msg" class="text-center text-gray-500 mt-4">
+                            <i class="fas fa-mouse-pointer fa-2x mb-3 opacity-50"></i>
+                            <p class="text-sm">Select an element in the game<br>to edit its properties.</p>
+                            <p class="text-xs mt-2 text-gray-600">Click on Player, Enemy, or Text</p>
+                        </div>
+
+                        <div id="props-form" class="hidden space-y-4">
+                            <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+                                <h4 class="text-xs font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">SELECTED ELEMENT</h4>
+                                <div class="text-[10px] font-mono text-cyan-400 mb-2" id="selected-id">ID: --</div>
+
+                                <div class="prop-row">
+                                    <span class="prop-label">Fill Color</span>
+                                    <div class="flex items-center gap-2">
+                                        <input type="color" id="prop-color" class="bg-transparent border-none w-8 h-8 cursor-pointer" oninput="throttledUpdate('color', this.value)">
+                                        <input type="text" id="prop-color-text" class="prop-input w-20" onchange="updateVisualProperty('color', this.value)">
+                                    </div>
+                                </div>
+
+                                <div class="prop-row">
+                                    <span class="prop-label">Width / Radius</span>
+                                    <input type="number" id="prop-width" class="prop-input" oninput="throttledUpdate('width', this.value)">
+                                </div>
+                                <div class="prop-row">
+                                    <span class="prop-label">Height</span>
+                                    <input type="number" id="prop-height" class="prop-input" oninput="throttledUpdate('height', this.value)">
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+                                <h4 class="text-xs font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">OFFSET / TWEAK</h4>
+                                <div class="prop-row">
+                                    <span class="prop-label">Offset X</span>
+                                    <input type="range" min="-50" max="50" value="0" class="aether-slider w-20" oninput="throttledUpdate('offX', this.value)">
+                                </div>
+                                <div class="prop-row">
+                                    <span class="prop-label">Offset Y</span>
+                                    <input type="range" min="-50" max="50" value="0" class="aether-slider w-20" oninput="throttledUpdate('offY', this.value)">
+                                </div>
+                            </div>
+
+                            <div id="text-props" class="bg-gray-800/50 p-3 rounded-lg border border-gray-700 hidden">
+                                <h4 class="text-xs font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">TEXT CONTENT</h4>
+                                <input type="text" id="prop-text" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-white" oninput="throttledUpdate('text', this.value)">
+                            </div>
+                        </div>
+
+                        <button onclick="saveVisualChanges()" class="w-full py-3 bg-green-600 hover:bg-green-500 rounded text-xs font-bold text-white smooth-hover mt-6 border border-green-500 shadow-lg shadow-green-900/20">
+                            <i class="fas fa-save mr-2"></i> SAVE CHANGES
+                        </button>
+                        <p class="text-[10px] text-gray-500 text-center mt-2">Changes are live. Undo available after save.</p>
+                    </div>
+                </div>
+
+                <div class="flex border-b border-gray-700">
+                    <div class="flex-1 py-3 text-sm font-bold text-cyan-400 border-b-2 border-cyan-400 bg-gray-800/50 text-center font-cyber tracking-wider">
+                        <i class="fas fa-robot mr-2"></i>AI ARCHITECT
+                    </div>
+                </div>
+
+                <div id="tab-ai" class="flex-1 flex flex-col p-4 overflow-hidden">
+                    <div id="chat-history" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-2">
+                        <div class="bg-gray-800 p-3 rounded-xl text-sm text-gray-300 border border-gray-700">
+                            <p class="font-bold text-white mb-1">Editor Online.</p>
+                            <p>I can modify code, visuals, or gameplay mechanics instantly.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2">QUICK EDITS</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="edit-chip" onclick="fillAndSend('Change visual style to Neon Cyberpunk')">î˜¿ Neon Style</button>
+                            <button class="edit-chip" onclick="fillAndSend('Make the game harder and faster')">î˜¿ Harder</button>
+                            <button class="edit-chip" onclick="fillAndSend('Add a score counter and high score')">î˜¿ Add Score</button>
+                            <button class="edit-chip" onclick="fillAndSend('Fix any bugs and improve controls')">î˜¿ Fix Bugs</button>
+                            <button class="edit-chip" onclick="fillAndSend('Change background to outer space')">î˜¿ Space BG</button>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-[10px] text-gray-500">AI MODEL:</label>
+                             <select id="edit-model-select" class="bg-gray-900 text-cyan-400 text-xs rounded border border-gray-700 px-2 py-1 outline-none">
+                                <option value="flash">FAST</option>
+                                <option value="pro">PRO (2.5)</option>
+                            </select>
+                        </div>
+                        <textarea id="ai-input" placeholder="Describe changes (e.g., 'Make the player green')..." class="w-full bg-gray-900/80 border border-gray-700 rounded-lg p-3 text-sm text-white focus-input resize-none h-24 font-mono"></textarea>
+                        <button id="ai-submit-btn" onclick="submitAiEdit()" class="absolute bottom-3 right-3 bg-cyan-600 hover:bg-cyan-500 text-white p-2 rounded-md text-xs font-bold smooth-hover shadow-lg shadow-cyan-900/50">
+                            APPLY
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="projects-page" class="page hidden p-8 max-w-7xl mx-auto">
+            <h2 class="text-3xl font-cyber mb-8 text-cyan-400 border-b border-gray-800 pb-4">SAVED PROJECTS</h2>
+
+            <div id="pending-invites-container" class="mb-8 hidden">
+                <h3 class="text-lg font-cyber text-yellow-400 mb-4">PENDING INVITES</h3>
+                <div id="pending-invites-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+
+            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="gallery-page" class="page hidden p-8 max-w-7xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-4xl font-cyber text-white">PUBLIC <span class="text-cyan-400">GALLERY</span></h2>
+                <p class="text-gray-400 mt-2">Explore games created by the AETHER community.</p>
+                <div class="max-w-md mx-auto mt-6 relative">
+                    <input type="text" id="gallery-search" placeholder="Search games by title..." class="w-full bg-gray-900 border border-gray-700 rounded-full py-3 px-5 text-white focus-input" onkeyup="filterGallery()">
+                    <i class="fas fa-search absolute right-5 top-3.5 text-gray-500"></i>
+                </div>
+            </div>
+            <div id="gallery-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                </div>
+        </div>
+        <div id="pricing-page" class="page hidden p-8 max-w-7xl mx-auto">
+             <div class="text-center mb-8">
+                <h2 class="text-4xl font-cyber text-white">UPGRADE SYSTEM</h2>
+                <p class="text-gray-400 mt-2">Unlock advanced export capabilities and commercial licenses.</p>
+            </div>
+
+            <div class="flex justify-center mb-10">
+                <div class="billing-toggle" onclick="toggleBilling()" id="billing-switch">
+                    <div class="billing-toggle-pill"></div>
+                    <div class="billing-option opt-monthly">MONTHLY</div>
+                    <div class="billing-option opt-yearly">YEARLY (-40%)</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                <div class="glass-panel p-6 rounded-xl border-t-4 border-gray-600 flex flex-col smooth-hover">
+                    <h3 class="font-cyber text-xl text-gray-400">FREE</h3>
+                    <div class="text-3xl font-bold my-4">$0</div>
+                    <ul class="space-y-3 text-xs text-gray-400 mb-6 flex-1">
+                        <li><i class="fas fa-check mr-2 text-green-500"></i> 1 Project Build</li>
+                        <li><i class="fas fa-times mr-2 text-red-500"></i> No Downloads</li>
+                        <li><i class="fas fa-times mr-2 text-red-500"></i> No Sharing</li>
+                        <li><i class="fas fa-info-circle mr-2 text-gray-500"></i> AETHER Watermark</li>
+                        </ul>
+                    <button id="btn-free" class="w-full py-3 bg-gray-800 rounded font-bold text-gray-500 cursor-not-allowed" disabled>CURRENT PLAN</button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-xl border-t-4 border-cyan-400 relative transform scale-[1.02] shadow-2xl shadow-cyan-900/20 flex flex-col smooth-hover">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-cyan-400 text-black px-4 py-1 font-bold text-xs rounded-full">POPULAR</div>
+                    <h3 class="font-cyber text-xl text-cyan-400">STARTER</h3>
+                    <div class="text-3xl font-bold my-4 price-display" data-monthly="5" data-yearly="36">$5<span class="text-xs font-normal text-gray-500">/mo</span></div>
+                    <p class="text-[10px] text-green-400 font-bold yearly-badge hidden mb-2">BILLED YEARLY ($36/yr)</p>
+                    <ul class="space-y-3 text-xs text-gray-300 mb-6 flex-1">
+                        <li><i class="fas fa-check mr-2 text-cyan-400"></i> 20 Daily Uses</li>
+                        <li><i class="fas fa-check mr-2 text-cyan-400"></i> Download HTML5</li>
+                        <li><i class="fas fa-check mr-2 text-cyan-400"></i> Share Links</li>
+                        <li><i class="fas fa-check mr-2 text-cyan-400"></i> No Watermark</li>
+                        </ul>
+                    <button id="btn-starter" onclick="buy('starter')" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded font-bold text-white smooth-hover">UPGRADE</button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-xl border-t-4 border-purple-500 flex flex-col smooth-hover">
+                    <h3 class="font-cyber text-xl text-purple-400">DEVELOPER</h3>
+                    <div class="text-3xl font-bold my-4 price-display" data-monthly="20" data-yearly="144">$20<span class="text-xs font-normal text-gray-500">/mo</span></div>
+                    <p class="text-[10px] text-green-400 font-bold yearly-badge hidden mb-2">BILLED YEARLY ($144/yr)</p>
+                    <ul class="space-y-3 text-xs text-gray-300 mb-6 flex-1">
+                        <li><i class="fas fa-check mr-2 text-purple-400"></i> 50 Daily Normal Uses</li>
+                        <li><i class="fas fa-check mr-2 text-purple-400"></i> 5 Daily PRO Uses</li>
+                        <li><i class="fas fa-check mr-2 text-purple-400"></i> Commercial License</li>
+                        <li><i class="fas fa-code mr-2 text-purple-400"></i> Full Code Access</li>
+                        <li><i class="fas fa-check mr-2 text-purple-400"></i> Priority GPU</li>
+                    </ul>
+                    <button id="btn-developer" onclick="buy('developer')" class="w-full py-3 bg-purple-900 hover:bg-purple-800 rounded font-bold text-white smooth-hover">UPGRADE</button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-xl border-t-4 border-pink-500 flex flex-col smooth-hover">
+                    <h3 class="font-cyber text-xl text-pink-500">ULTRA</h3>
+                    <div class="text-3xl font-bold my-4 price-display" data-monthly="82" data-yearly="588">$82<span class="text-xs font-normal text-gray-500">/mo</span></div>
+                    <p class="text-[10px] text-green-400 font-bold yearly-badge hidden mb-2">BILLED YEARLY ($588/yr)</p>
+                    <ul class="space-y-3 text-xs text-gray-300 mb-6 flex-1">
+                        <li><i class="fas fa-star mr-2 text-pink-500"></i> Gemini 2.5 PRO Access</li>
+                        <li><i class="fas fa-check mr-2 text-pink-500"></i> 100 PRO Uses / Day</li>
+                        <li><i class="fas fa-check mr-2 text-pink-500"></i> 1000 Normal Uses</li>
+                        <li><i class="fas fa-users mr-2 text-pink-500"></i> Team Collaboration</li>
+                        <li><i class="fas fa-rocket mr-2 text-pink-500"></i> 24/7 Priority Support</li>
+                    </ul>
+                    <button id="btn-ultra" onclick="buy('ultra')" class="w-full py-3 bg-pink-600 hover:bg-pink-500 rounded font-bold text-white smooth-hover">GO ULTRA</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="contact-page" class="page hidden p-8 max-w-4xl mx-auto">
+            <h2 class="text-3xl font-cyber mb-6 text-cyan-400">CONTACT US</h2>
+            <div class="glass-panel p-8 rounded-xl border border-gray-700">
+                <div class="space-y-4">
+                    <input type="text" id="contact-name" placeholder="Your Name" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                    <input type="email" id="contact-email" placeholder="Email Address" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                    <textarea id="contact-msg" placeholder="How can we help?" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input h-32"></textarea>
+                    <button onclick="submitContact()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded smooth-hover">SEND MESSAGE</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tos-page" class="page hidden p-8 max-w-4xl mx-auto overflow-y-auto">
+            <h2 class="text-3xl font-cyber mb-6 text-gray-300">TERMS OF SERVICE</h2>
+            <div class="glass-panel p-8 rounded-xl border border-gray-700 text-sm text-gray-400 space-y-4">
+                <p><strong>1. Acceptance of Terms.</strong> By accessing AETHER.AI, you agree to these terms.</p>
+                <p><strong>2. AI Generated Content.</strong> Content is generated by Artificial Intelligence. We make no guarantees regarding accuracy, copyright uniqueness, or suitability for any purpose.</p>
+                <p><strong>3. User Responsibility.</strong> You are responsible for the inputs you provide and the outputs you use. Do not generate illegal or offensive content.</p>
+                <p><strong>4. Limitation of Liability.</strong> AETHER.AI is provided "as is". We are not liable for any damages arising from use.</p>
+                <p><strong>5. Payments.</strong> Payments are processed via Stripe. Refunds are handled on a case-by-case basis within 7 days.</p>
+            </div>
+        </div>
+
+        <div id="privacy-page" class="page hidden p-8 max-w-4xl mx-auto overflow-y-auto">
+            <h2 class="text-3xl font-cyber mb-6 text-gray-300">PRIVACY POLICY</h2>
+            <div class="glass-panel p-8 rounded-xl border border-gray-700 text-sm text-gray-400 space-y-4">
+                <p><strong>1. Data Collection.</strong> We collect email addresses and usage data to provide the service.</p>
+                <p><strong>2. Third Parties.</strong> We use Stripe for payments and Google Gemini for AI generation. Data is shared only as necessary for these functions.</p>
+                <p><strong>3. Cookies.</strong> We use cookies for authentication and session management.</p>
+                <p><strong>4. Your Rights.</strong> You may request deletion of your account and data at any time via the Contact page.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="auth-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md relative border border-gray-800 smooth-hover transform scale-100">
+            <button onclick="toggleAuth(false)" class="absolute top-4 right-4 text-gray-500 hover:text-white smooth-hover"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-cyber mb-6 text-center text-white" id="auth-title">LOGIN ACCESS</h2>
+
+            <div class="space-y-4" id="auth-form">
+                <input type="email" id="email" placeholder="Email Identity" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                <input type="password" id="password" placeholder="Access Key (Password)" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                <button id="auth-btn" onclick="submitAuth()" class="w-full bg-white text-black font-bold py-3 rounded hover:bg-cyan-400 smooth-hover">CONTINUE</button>
+
+                <div class="text-center">
+                    <span onclick="setAuthMode('forgot')" class="text-xs text-gray-500 cursor-pointer hover:text-cyan-400 smooth-hover">Forgot Password?</span>
+                </div>
+            </div>
+
+            <div id="forgot-form" class="hidden space-y-4">
+                 <p class="text-sm text-gray-400 text-center">Enter your email to receive a reset code.</p>
+                 <input type="email" id="forgot-email" placeholder="Email Identity" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                 <button onclick="submitForgot()" class="w-full bg-cyan-600 text-white font-bold py-3 rounded hover:bg-cyan-500 smooth-hover">SEND CODE</button>
+                 <div class="text-center">
+                    <span onclick="setAuthMode('login')" class="text-xs text-gray-500 cursor-pointer hover:text-white smooth-hover">Back to Login</span>
+                </div>
+            </div>
+
+            <div id="reset-form" class="hidden space-y-4">
+                 <p class="text-sm text-gray-400 text-center">Enter the code sent to your email and your new password.</p>
+                 <input type="text" id="reset-code" placeholder="Verification Code" class="w-full bg-black border border-cyan-500 rounded p-3 text-center text-xl tracking-widest text-white font-mono focus-input">
+                 <input type="password" id="reset-pass" placeholder="New Password" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                 <div class="h-1 bg-gray-800 rounded w-full"><div id="pass-strength" class="h-full bg-red-500 w-0 transition-all duration-300"></div></div>
+                 <button onclick="submitReset()" class="w-full bg-white text-black font-bold py-3 rounded hover:bg-green-400 smooth-hover">RESET PASSWORD</button>
+            </div>
+
+            <div id="verify-form" class="hidden text-center space-y-4">
+                <p class="text-sm text-gray-400">Enter code sent to your email:</p>
+                <input type="text" id="verify-code" class="w-full bg-black border border-cyan-500 rounded p-3 text-center text-2xl tracking-widest text-white font-mono focus-input">
+                <button onclick="submitVerify()" class="w-full bg-cyan-600 text-white font-bold py-3 rounded hover:bg-cyan-500 smooth-hover">VERIFY</button>
+            </div>
+
+            <div class="mt-6 text-center text-xs text-gray-500 flex justify-between" id="auth-footer">
+                <span onclick="authMode='signup'; setAuthUI()" class="cursor-pointer hover:text-cyan-400 smooth-hover">Create Account</span>
+                <span onclick="authMode='login'; setAuthUI()" class="cursor-pointer hover:text-cyan-400 smooth-hover">Login</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="metadata-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md relative border border-gray-800 smooth-hover transform scale-100">
+            <button onclick="document.getElementById('metadata-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-white smooth-hover"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-cyber mb-6 text-white">PROJECT DETAILS</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">PROJECT NAME</label>
+                    <input type="text" id="meta-title" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">DESCRIPTION</label>
+                    <textarea id="meta-desc" class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus-input h-24 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-2">PUBLISH IDENTITY</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="publish_identity" value="anon" class="mr-2 accent-cyan-400">
+                            <span class="text-sm text-gray-300">Anonymous</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="publish_identity" value="username" class="mr-2 accent-cyan-400">
+                            <span class="text-sm text-gray-300">Username (First 3)</span>
+                        </label>
+                    </div>
+                </div>
+                <button onclick="submitMetadata()" class="w-full bg-cyan-600 text-white font-bold py-3 rounded hover:bg-cyan-500 smooth-hover mt-4">SAVE CHANGES</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="team-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="glass-panel p-6 rounded-2xl w-full max-w-lg relative border border-gray-800">
+            <button onclick="document.getElementById('team-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-cyber mb-2 text-white">TEAM ACCESS</h2>
+            <p class="text-gray-400 text-xs mb-6">Invite collaborators to edit this project. They need an Aether account.</p>
+
+            <div class="flex gap-2 mb-6">
+                <input type="email" id="invite-email" placeholder="Collaborator Email" class="flex-1 bg-gray-900 border border-gray-700 rounded p-2 text-white text-sm focus-input">
+                <button onclick="submitInvite()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-xs font-bold smooth-hover">INVITE</button>
+            </div>
+
+            <div class="bg-gray-900/50 rounded-lg p-4 h-48 overflow-y-auto border border-gray-800" id="team-list">
+                 </div>
+        </div>
+    </div>
+
+    <div id="download-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md relative border border-gray-800">
+            <h2 class="text-2xl font-cyber mb-6 text-center text-white">DOWNLOAD PROJECT</h2>
+            <p class="text-gray-400 mb-6 text-center text-sm">Select your desired export format.</p>
+            <div class="space-y-4">
+                <button onclick="downloadGame('html'); hideDownloadModal()" class="w-full flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded smooth-hover border border-gray-700">
+                    <i class="fas fa-file-code mr-3"></i> HTML5 (Single File)
+                </button>
+                <button onclick="downloadGame('pwa'); hideDownloadModal()" class="w-full flex items-center justify-center bg-cyan-900/30 hover:bg-cyan-900/50 text-cyan-400 font-bold py-4 rounded smooth-hover border border-cyan-700">
+                    <i class="fas fa-mobile-alt mr-3"></i> PWA (Zip: HTML, Manifest, Service Worker)
+                </button>
+            </div>
+            <button onclick="hideDownloadModal()" class="w-full mt-6 text-gray-500 hover:text-white smooth-hover text-sm">Cancel</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- CORE VARIABLES ---
+        let currentUser = null;
+        let authMode = 'login';
+        let currentGameId = null;
+        let currentPrompt = "";
+        let generatedCode = "";
+        let currentViewMode = 'pc';
+
+        // --- REQUEST LOCK VARIABLE ---
+        let isApiBusy = false;
+
+        // --- VISUAL EDITOR VARIABLES ---
+        let isVisualEditing = false;
+        let visualOverrides = {}; // Stores { id: { color, width, ... } }
+        let visualBackup = {}; // To restore if cancelled
+        let globalGameSpeed = 1.0;
+        let globalGameWidth = 100; // Percent
+        let currentSelectionId = null;
+
+        // --- BILLING VARS ---
+        let billingInterval = 'month';
+
+        // --- BAD WORDS ---
+        const BAD_WORDS = ['bad', 'evil', 'curse', 'hell', 'damn', 'scam', 'hate', 'kill', 'murder', 'stupid', 'idiot', 'ugly', 'offensive'];
+
+        // --- TIER LEVELS CONSTANTS ---
+        const TIER_LEVELS = {
+            'free': 0,
+            'starter': 1,
+            'premium': 2,
+            'developer': 3,
+            'ultra': 4
+        };
+
+        // --- UNDO/REDO HISTORY (UNIFIED) ---
+        // Stores objects: { code: string, visuals: object, speed: number }
+        let history = [];
+        let historyIndex = -1;
+
+        // --- UTILS / SMOOTHING ---
+        const getTierColor = (tier) => {
+            if(tier === 'ultra') return 'text-pink-500 border-pink-500'; // Feature 3
+            if(tier === 'developer') return 'text-purple-400 border-purple-500';
+            if(tier === 'premium') return 'text-cyan-400 border-cyan-500';
+            if(tier === 'starter') return 'text-yellow-400 border-yellow-500';
+            return 'text-gray-400';
+        }
+
+        const showPage = (id) => {
+            // === AETHER FIX: Explicit DOM Manipulation for View Switching ===
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none'; // Force style inline to override any CSS issues
+            });
+
+            const activePage = document.getElementById(id);
+            if(activePage) {
+                activePage.classList.add('active');
+                activePage.style.display = 'flex'; // Force style inline
+                if(id === 'hero-section') activePage.scrollTop = 0;
+            }
+
+            if(id === 'projects-page') { loadProjects(); loadPendingInvites(); }
+            if(id === 'gallery-page') loadGallery();
+            if(id === 'pricing-page') updatePricingButtons();
+        };
+
+        function showDownloadModal() {
+             document.getElementById('download-modal').classList.remove('hidden');
+        }
+        function hideDownloadModal() {
+             document.getElementById('download-modal').classList.add('hidden');
+        }
+
+        // --- HISTORY MANAGEMENT (UNIFIED UNDO/REDO) ---
+        function pushHistory(code, visuals, speed) {
+            // Remove all 'future' history states if we are not at the end
+            if (historyIndex < history.length - 1) {
+                history = history.slice(0, historyIndex + 1);
+            }
+            // Deep copy visuals to ensure snapshot is distinct
+            const visualSnapshot = JSON.parse(JSON.stringify(visuals || {}));
+            history.push({ code: code, visuals: visualSnapshot, speed: speed || 1.0 });
+            historyIndex = history.length - 1;
+            updateUndoRedoButtons();
+        }
+
+        function updateUndoRedoButtons() {
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+
+            undoBtn.disabled = historyIndex <= 0;
+            undoBtn.classList.toggle('text-gray-600', historyIndex <= 0);
+            undoBtn.classList.toggle('text-white', historyIndex > 0);
+
+            redoBtn.disabled = historyIndex >= history.length - 1;
+            redoBtn.classList.toggle('text-gray-600', historyIndex >= history.length - 1);
+            redoBtn.classList.toggle('text-white', historyIndex < history.length - 1);
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                restoreState(history[historyIndex]);
+                updateUndoRedoButtons();
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                restoreState(history[historyIndex]);
+                updateUndoRedoButtons();
+            }
+        }
+
+        function restoreState(state) {
+            visualOverrides = JSON.parse(JSON.stringify(state.visuals));
+            globalGameSpeed = state.speed;
+
+            // Update Speed UI
+            const speedSlider = document.querySelector('.aether-slider[min="0.1"]');
+            if(speedSlider) {
+                speedSlider.value = globalGameSpeed;
+                document.getElementById('speed-display').innerText = globalGameSpeed + 'x';
+            }
+
+            // Re-render and apply settings
+            renderGame(state.code);
+
+            // Re-open properties if something was selected
+            if(currentSelectionId && visualOverrides[currentSelectionId]) {
+                showProperties(visualOverrides[currentSelectionId], currentSelectionId, 'unknown');
+            }
+        }
+
+        // --- AUTHENTICATION ---
+        const toggleAuth = (show) => {
+            const el = document.getElementById('auth-modal');
+            if(show) { el.classList.remove('hidden'); setAuthUI(); }
+            else el.classList.add('hidden');
+        };
+
+        // Feature 1: Password Strength & UI States
+        const setAuthUI = () => {
+            document.getElementById('auth-title').innerText = authMode === 'login' ? 'LOGIN ACCESS' : 'NEW ACCOUNT CREATION';
+            document.getElementById('auth-form').classList.remove('hidden');
+            document.getElementById('verify-form').classList.add('hidden');
+            document.getElementById('forgot-form').classList.add('hidden');
+            document.getElementById('reset-form').classList.add('hidden');
+            document.getElementById('auth-footer').classList.remove('hidden');
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('verify-code').value = '';
+        };
+
+        const setAuthMode = (mode) => {
+             document.getElementById('auth-form').classList.add('hidden');
+             document.getElementById('verify-form').classList.add('hidden');
+             document.getElementById('forgot-form').classList.add('hidden');
+             document.getElementById('reset-form').classList.add('hidden');
+             document.getElementById('auth-footer').classList.add('hidden');
+
+             if(mode === 'forgot') {
+                 document.getElementById('auth-title').innerText = 'RECOVER ACCESS';
+                 document.getElementById('forgot-form').classList.remove('hidden');
+             } else if(mode === 'reset') {
+                 document.getElementById('auth-title').innerText = 'RESET PASSWORD';
+                 document.getElementById('reset-form').classList.remove('hidden');
+             } else {
+                 authMode = mode;
+                 setAuthUI();
+             }
+        }
+
+        // Feature 1: Password strength visual
+        document.getElementById('reset-pass').addEventListener('input', function(e) {
+            const val = e.target.value;
+            const bar = document.getElementById('pass-strength');
+            if(val.length > 8) { bar.classList.replace('bg-red-500', 'bg-green-500'); bar.style.width = '100%'; }
+            else if(val.length > 4) { bar.classList.replace('bg-red-500', 'bg-yellow-500'); bar.style.width = '50%'; }
+            else { bar.classList.replace('bg-green-500', 'bg-red-500'); bar.style.width = '10%'; }
+        });
+
+        async function submitAuth() {
+            if(isApiBusy) return;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('auth-btn');
+
+            if(!email || !password) return Swal.fire({toast:true, position:'top-end', icon:'error', title:'Missing fields', background:'#222', color:'#fff'});
+
+            isApiBusy = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> PROCESSING...';
+            try {
+                const res = await fetch(`/api/auth/${authMode}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const data = await res.json();
+
+                if(data.success && data.require_verify) {
+                    document.getElementById('auth-form').classList.add('hidden');
+                    document.getElementById('verify-form').classList.remove('hidden');
+                    document.getElementById('auth-footer').classList.add('hidden'); // Hide footer during verify
+                    Swal.fire({toast:true, position:'top', icon:'info', title:'Verification Code Sent', text:'Check your inbox.', background:'#222', color:'#fff'});
+                } else if (data.success) {
+                    toggleAuth(false);
+                    await checkAuthStatus();
+                    Swal.fire({toast:true, position:'top', icon:'success', title:'Login Successful', background:'#222', color:'#fff'});
+                } else {
+                    Swal.fire({icon:'error', text: data.message, background:'#222', color:'#fff'});
+                }
+            } catch(e) {
+                console.error(e);
+                Swal.fire({icon:'error', text: 'A network error occurred.', background:'#222', color:'#fff'});
+            } finally {
+                isApiBusy = false;
+                btn.innerHTML = 'CONTINUE';
+            }
+        }
+
+        // Feature 1: Submit Forgot Password
+        async function submitForgot() {
+            const email = document.getElementById('forgot-email').value;
+            if(!email) return Swal.fire({toast:true, icon:'error', title:'Email required'});
+
+            const res = await fetch('/api/auth/forgot', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email})
+            });
+            const data = await res.json();
+            if(data.success) {
+                setAuthMode('reset');
+                Swal.fire({toast:true, icon:'info', title:'Check Email', text:'Enter the code sent to you.'});
+            }
+        }
+
+        // Feature 1: Submit Reset Password
+        async function submitReset() {
+            const email = document.getElementById('forgot-email').value;
+            const code = document.getElementById('reset-code').value;
+            const new_password = document.getElementById('reset-pass').value;
+
+            const res = await fetch('/api/auth/reset', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, code, new_password})
+            });
+            const data = await res.json();
+            if(data.success) {
+                setAuthMode('login');
+                Swal.fire({icon:'success', title:'Password Reset', text:'Please login with your new password.', background:'#222', color:'#fff'});
+            } else {
+                Swal.fire({icon:'error', text: data.message});
+            }
+        }
+
+        async function submitVerify() {
+            const email = document.getElementById('email').value;
+            const code = document.getElementById('verify-code').value;
+
+            const res = await fetch('/api/auth/verify', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({email, code})
+            });
+            const data = await res.json();
+            if(data.success) {
+                toggleAuth(false);
+                await checkAuthStatus();
+                Swal.fire({toast:true, position:'top', icon:'success', title:'Authenticated & Logged In', background:'#222', color:'#fff'});
+            } else {
+                Swal.fire({icon:'error', text: 'Invalid or expired code.', background:'#222', color:'#fff'});
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const res = await fetch('/api/auth/status');
+                const data = await res.json();
+                const nav = document.getElementById('nav-links');
+
+                if(data.authenticated) {
+                    currentUser = data;
+                    nav.innerHTML = `
+                        <button onclick="showPage('projects-page')" class="hover:text-cyan-400 smooth-hover">PROJECTS</button>
+                        <button onclick="showPage('pricing-page')" class="hover:text-cyan-400 smooth-hover">UPGRADE</button>
+                        <div class="px-3 py-1 bg-gray-800 rounded-full border border-gray-600 text-xs font-bold uppercase ${getTierColor(data.tier)}">
+                            ${data.tier}
+                        </div>
+                        <button onclick="logout()" class="text-red-400 hover:text-red-300 smooth-hover"><i class="fas fa-power-off"></i></button>
+                    `;
+
+                    updateModelSelector(data.tier);
+                } else {
+                    currentUser = null;
+                    nav.innerHTML = `
+                        <button onclick="toggleAuth(true)" class="hover:text-white text-gray-300 smooth-hover">LOGIN</button>
+                        <button onclick="authMode='signup'; toggleAuth(true)" class="bg-white text-black px-4 py-2 rounded-full font-bold hover:bg-cyan-400 hover:text-black smooth-hover">GET STARTED</button>
+                    `;
+                    document.getElementById('model-selector-container').innerHTML = ''; // Clear if logged out
+                }
+                return data;
+            } catch (e) {
+                console.error("Auth check failed:", e);
+                return { authenticated: false };
+            }
+        }
+
+        // --- UX ENHANCEMENT: MODEL SELECTOR ---
+        function updateModelSelector(tier) {
+            const container = document.getElementById('model-selector-container');
+            const hiddenSelect = document.getElementById('hero-model-select');
+
+            const canUsePro = ['developer', 'ultra'].includes(tier);
+            const currentModel = hiddenSelect.value || 'flash';
+
+            // Build UI
+            let html = `
+                <div class="flex items-center text-xs font-bold cursor-pointer transition-all duration-300 ${currentModel === 'flash' ? 'text-cyan-400' : 'text-gray-500 hover:text-gray-300'}"
+                     onclick="selectModel('flash')">
+                    <i class="fas fa-bolt mr-1"></i> FLASH
+                </div>
+            `;
+
+            if (canUsePro) {
+                html += `
+                    <div class="w-px h-4 bg-gray-700 mx-3"></div>
+                    <div class="flex items-center text-xs font-bold cursor-pointer transition-all duration-300 ${currentModel === 'pro' ? 'text-purple-400' : 'text-gray-500 hover:text-gray-300'}"
+                         onclick="selectModel('pro')">
+                         <i class="fas fa-brain mr-1"></i> PRO 2.5
+                    </div>
+                `;
+            } else {
+                 html += `
+                    <div class="w-px h-4 bg-gray-700 mx-3"></div>
+                    <div class="flex items-center text-xs font-bold text-gray-700 cursor-not-allowed" title="Unlock with Developer Tier">
+                         <i class="fas fa-lock mr-1"></i> PRO
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function selectModel(model) {
+            const hiddenSelect = document.getElementById('hero-model-select');
+            hiddenSelect.value = model;
+            // Refresh UI state
+            updateModelSelector(currentUser ? currentUser.tier : 'free');
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout');
+            location.reload();
+        }
+
+        // --- UPGRADE BUTTON LOGIC ---
+        function updatePricingButtons() {
+            if (!currentUser) return;
+
+            const tiers = ['free', 'starter', 'developer', 'ultra'];
+            const userLevel = TIER_LEVELS[currentUser.tier] || 0;
+
+            tiers.forEach(tier => {
+                const btn = document.getElementById(`btn-${tier}`);
+                if (!btn) return;
+
+                const tierLevel = TIER_LEVELS[tier] || 0;
+
+                if (tierLevel <= userLevel) {
+                    btn.disabled = true;
+                    btn.innerHTML = tier === currentUser.tier ? "CURRENT PLAN" : "DOWNGRADE UNAVAILABLE";
+                    btn.classList.remove('bg-cyan-600', 'bg-purple-900', 'bg-pink-600', 'hover:bg-cyan-500', 'hover:bg-purple-800', 'hover:bg-pink-500');
+                    btn.classList.add('bg-gray-800', 'text-gray-500', 'cursor-not-allowed', 'border', 'border-gray-700');
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = tier === 'ultra' ? "GO ULTRA" : "UPGRADE";
+                    // Reset styling classes logic (simplified for robustness)
+                    if(tier === 'starter') btn.className = "w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded font-bold text-white smooth-hover";
+                    if(tier === 'developer') btn.className = "w-full py-3 bg-purple-900 hover:bg-purple-800 rounded font-bold text-white smooth-hover";
+                    if(tier === 'ultra') btn.className = "w-full py-3 bg-pink-600 hover:bg-pink-500 rounded font-bold text-white smooth-hover";
+                }
+            });
+        }
+
+
+        // --- GAME ENGINE ---
+
+        async function initiateBuild() {
+            if(!currentUser) return toggleAuth(true);
+
+            // STRICT FRONTEND LOCK
+            if (isApiBusy) return;
+
+            const promptInput = document.getElementById('game-prompt');
+            const genBtn = document.getElementById('generate-btn');
+            const prompt = promptInput.value.trim();
+            if(!prompt) return;
+
+            currentPrompt = prompt;
+
+            // Feature 5: Get Selected Model
+            const modelSelect = document.getElementById('hero-model-select');
+            const selectedModel = (!modelSelect.classList.contains('hidden') && modelSelect.value) ? modelSelect.value : 'flash';
+
+            // LOCK UI
+            isApiBusy = true;
+            promptInput.disabled = true;
+            genBtn.disabled = true;
+
+            // SMOOTH LOADING SCREEN
+            const loader = document.getElementById('loading-screen');
+            const msg = document.getElementById('loading-message');
+            loader.style.display = 'flex';
+            msg.innerText = "INITIALIZING CORE...";
+
+            // Fake progress for UX, but actual wait happens on fetch
+            setTimeout(() => { if(isApiBusy) msg.innerText = "GENERATING GAMEPLAY LOGIC (30%)..."; }, 800);
+            setTimeout(() => { if(isApiBusy) msg.innerText = "OPTIMIZING VISUAL ASSETS (60%)..."; }, 2500);
+
+            const settings = {};
+
+            try {
+                // === AETHER FEATURE ADDITION: Pass settings & model ===
+                const res = await fetch('/api/generate', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt, settings, model: selectedModel})
+                });
+
+                if(res.status === 402) {
+                    loader.style.display = 'none';
+                    showPage('pricing-page');
+                    Swal.fire({icon:'warning', title:'Limit Reached', text:'Upgrade to build more.', background:'#222', color:'#fff'});
+                    return;
+                }
+
+                if(res.status === 403) {
+                     loader.style.display = 'none';
+                     const msg = (await res.json()).message_for_user || 'Access Denied';
+                     Swal.fire({icon:'error', title:'Restricted', text: msg, background:'#222', color:'#fff'});
+                     return;
+                }
+
+                if(res.status === 429) {
+                     loader.style.display = 'none';
+                     const msg = (await res.json()).message_for_user || 'Limit reached';
+                     Swal.fire({icon:'warning', title:'Daily Limit', text: msg, background:'#222', color:'#fff'});
+                     return;
+                }
+
+                const data = await res.json();
+                if(data.success) {
+                    currentGameId = data.game_id;
+                    generatedCode = data.code;
+                    visualOverrides = {}; // Reset visual edits on new generation
+                    globalGameSpeed = 1.0;
+                    globalGameWidth = 100;
+
+                    msg.innerText = "FINALIZING RENDER (100%)...";
+
+                    setTimeout(() => {
+                        loader.style.display = 'none';
+                        showPage('builder-ui');
+                        document.getElementById('game-title-display').innerText = prompt.substring(0, 30) + "...";
+
+                        // Clear history and add initial state
+                        history = [];
+                        historyIndex = -1;
+                        pushHistory(generatedCode, visualOverrides, globalGameSpeed);
+                        renderGame(generatedCode);
+                        setViewMode('pc');
+
+                        // === AETHER FEATURE ADDITION START: Reset like button ===
+                        document.getElementById('like-btn').classList.add('hidden');
+                        document.getElementById('editor-sidebar').classList.remove('hidden');
+                        // Reset public toggle for new game (default private)
+                        document.getElementById('public-toggle-btn').classList.remove('hidden');
+                        document.getElementById('public-toggle-btn').innerHTML = '<i class="fas fa-lock mr-1"></i> PRIVATE';
+                        document.getElementById('public-toggle-btn').classList.replace('text-cyan-400', 'text-gray-300');
+                        // === AETHER FEATURE ADDITION END ===
+
+                        // Reset Chat
+                        const chat = document.getElementById('chat-history');
+                        chat.innerHTML = `<div class="bg-gray-800 p-3 rounded-xl text-sm text-gray-300 border border-gray-700">Project Initialized: "${prompt.substring(0, 50)}..."</div>`;
+
+                        // New projects for paid users allow edit, otherwise hide
+                        const tierLevel = TIER_LEVELS[currentUser.tier];
+                        const canEdit = tierLevel >= 2; // Premium+
+
+                        document.getElementById('visual-edit-btn').classList.toggle('hidden', !canEdit);
+                        document.getElementById('magic-btn').classList.toggle('hidden', !canEdit);
+
+                    }, 500);
+                } else {
+                    throw new Error(data.message_for_user || 'Generation failed');
+                }
+            } catch(e) {
+                loader.style.display = 'none';
+                Swal.fire({icon:'error', title:'Error', text: e.message, background:'#222', color:'#fff'});
+            } finally {
+                // UNLOCK UI
+                isApiBusy = false;
+                promptInput.disabled = false;
+                genBtn.disabled = false;
+            }
+        }
+
+        // --- ROBUST UNIVERSAL VISUAL HOOK SCRIPT ---
+        const VISUAL_HOOK_SCRIPT = `
+            <script>
+            (function() {
+                const overrides = {}; // { 'rect_12': { color: 'red', w: 10 ... } }
+                let isEditing = false;
+                let drawCount = 0;
+                let frameHits = []; // Buffer for clicks in current frame
+                let timeScale = 1.0;
+
+                // --- TIME DILATION ENGINE (Speed Hack) ---
+                const startReal = Date.now();
+                let startVirtual = startReal;
+                let lastReal = startReal;
+
+                // Override Date.now
+                const originalDateNow = Date.now;
+                Date.now = function() {
+                    const now = originalDateNow();
+                    const realDelta = now - lastReal;
+                    startVirtual += realDelta * timeScale;
+                    lastReal = now;
+                    return Math.floor(startVirtual);
+                };
+
+                // Override performance.now
+                const originalPerfNow = performance.now.bind(performance);
+                let lastPerfReal = originalPerfNow();
+                let startPerfVirtual = lastPerfReal;
+                performance.now = function() {
+                    const now = originalPerfNow();
+                    const delta = now - lastPerfReal;
+                    startPerfVirtual += delta * timeScale;
+                    lastPerfReal = now;
+                    return startPerfVirtual;
+                };
+
+                // Override setTimeout / setInterval to respect speed
+                const originalSetTimeout = window.setTimeout;
+                window.setTimeout = function(cb, delay) {
+                    return originalSetTimeout(cb, delay / timeScale);
+                };
+                const originalSetInterval = window.setInterval;
+                window.setInterval = function(cb, delay) {
+                    return originalSetInterval(cb, delay / timeScale);
+                };
+
+
+                // --- COMMUNICATION ---
+                window.addEventListener('message', (e) => {
+                    const data = e.data;
+                    if(data.type === 'SET_EDIT_MODE') {
+                        isEditing = data.active;
+                    }
+                    if(data.type === 'APPLY_OVERRIDE') {
+                        overrides[data.id] = { ...overrides[data.id], ...data.props };
+                    }
+                    if(data.type === 'LOAD_OVERRIDES') {
+                        Object.assign(overrides, data.data);
+                    }
+                    if(data.type === 'SET_SPEED') {
+                        timeScale = parseFloat(data.speed);
+                    }
+                });
+
+                // --- HIT DETECTION ---
+                // We collect ALL hits in a frame, then pick the last one (topmost)
+                let mousePos = null;
+
+                function registerHit(id, x, y, w, h, type, textVal) {
+                    if(!isEditing || !mousePos) return;
+                    const mx = mousePos.x;
+                    const my = mousePos.y;
+
+                    let hit = false;
+                    if(type === 'rect' || type === 'img') hit = (mx >= x && mx <= x + w && my >= y && my <= y + h);
+                    if(type === 'arc') { const dx = mx - x; const dy = my - y; hit = (dx*dx + dy*dy <= w*w); }
+                    if(type === 'text') hit = (mx >= x && mx <= x + 200 && my >= y - 20 && my <= y + 10);
+
+                    if(hit) {
+                        frameHits.push({
+                            id: id,
+                            props: {
+                                color: overrides[id]?.color || ctx.fillStyle,
+                                width: overrides[id]?.width || w,
+                                height: overrides[id]?.height || h,
+                                text: textVal
+                            },
+                            elementType: type
+                        });
+                    }
+                }
+
+                // Monkey Patch Canvas Context
+                const canvas = document.querySelector('canvas') || document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                function applyOverrides(id, x, y, w, h) {
+                    const ov = overrides[id];
+                    let rX = x, rY = y, rW = w, rH = h;
+                    if(ov) {
+                         if(ov.offX) rX += parseInt(ov.offX);
+                         if(ov.offY) rY += parseInt(ov.offY);
+                         if(ov.width) rW = parseInt(ov.width);
+                         if(ov.height) rH = parseInt(ov.height);
+                         if(ov.color) { ctx.fillStyle = ov.color; ctx.strokeStyle = ov.color; }
+                    }
+                    return { x: rX, y: rY, w: rW, h: rH, ov };
+                }
+
+                // --- HOOKS ---
+
+                // 1. fillRect
+                const originalFillRect = ctx.fillRect;
+                ctx.fillRect = function(x, y, w, h) {
+                    const id = 'rect_' + drawCount++;
+                    ctx.save();
+                    const { x: dx, y: dy, w: dw, h: dh, ov } = applyOverrides(id, x, y, w, h);
+                    registerHit(id, dx, dy, dw, dh, 'rect');
+                    if(isEditing && ov) {
+                        ctx.save(); ctx.strokeStyle = '#bc13fe'; ctx.lineWidth=2; ctx.strokeRect(dx-2, dy-2, dw+4, dh+4); ctx.restore();
+                    }
+                    originalFillRect.call(this, dx, dy, dw, dh);
+                    ctx.restore();
+                };
+
+                // 2. strokeRect (Outlines)
+                const originalStrokeRect = ctx.strokeRect;
+                ctx.strokeRect = function(x, y, w, h) {
+                    const id = 'sRect_' + drawCount++;
+                    ctx.save();
+                    const { x: dx, y: dy, w: dw, h: dh, ov } = applyOverrides(id, x, y, w, h);
+                    registerHit(id, dx, dy, dw, dh, 'rect');
+                    if(isEditing && ov) {
+                        ctx.save(); ctx.strokeStyle = '#bc13fe'; ctx.lineWidth=2; ctx.strokeRect(dx-2, dy-2, dw+4, dh+4); ctx.restore();
+                    }
+                    originalStrokeRect.call(this, dx, dy, dw, dh);
+                    ctx.restore();
+                };
+
+                // 3. drawImage (Sprites)
+                const originalDrawImage = ctx.drawImage;
+                ctx.drawImage = function(img, ...args) {
+                    const id = 'img_' + drawCount++;
+                    ctx.save();
+
+                    let x = 0, y = 0, w = img.width, h = img.height;
+                    if(args.length === 2) { x = args[0]; y = args[1]; }
+                    else if(args.length === 4) { x = args[0]; y = args[1]; w = args[2]; h = args[3]; }
+                    else if(args.length === 8) { x = args[4]; y = args[5]; w = args[6]; h = args[7]; }
+
+                    const { x: dx, y: dy, w: dw, h: dh, ov } = applyOverrides(id, x, y, w, h);
+
+                    // Reconstruct args
+                    let newArgs = [...args];
+                    if(args.length === 2) { newArgs[0] = dx; newArgs[1] = dy; }
+                    else if(args.length === 4) { newArgs[0] = dx; newArgs[1] = dy; newArgs[2] = dw; newArgs[3] = dh; }
+                    else if(args.length === 8) { newArgs[4] = dx; newArgs[5] = dy; newArgs[6] = dw; newArgs[7] = dh; }
+
+                    registerHit(id, dx, dy, dw, dh, 'img');
+
+                    if(isEditing && ov) {
+                        ctx.save(); ctx.strokeStyle = '#bc13fe'; ctx.lineWidth=2; ctx.strokeRect(dx, dy, dw, dh); ctx.restore();
+                    }
+                    originalDrawImage.call(this, img, ...newArgs);
+                    ctx.restore();
+                };
+
+                // 4. Arc (Circles)
+                const originalArc = ctx.arc;
+                ctx.arc = function(x, y, r, start, end) {
+                    const id = 'arc_' + drawCount++;
+                    const ov = overrides[id];
+                    let dx = x, dy = y, dr = r;
+                    if(ov) {
+                        if(ov.offX) dx += parseInt(ov.offX);
+                        if(ov.offY) dy += parseInt(ov.offY);
+                        if(ov.width) dr = parseInt(ov.width);
+                    }
+
+                    registerHit(id, dx, dy, dr, 0, 'arc');
+
+                    if(isEditing && ov) {
+                         ctx.save(); ctx.strokeStyle = '#bc13fe'; ctx.lineWidth=2; ctx.beginPath(); originalArc.call(ctx, dx, dy, dr+2, 0, Math.PI*2); ctx.stroke(); ctx.restore();
+                         if(ov.color) { ctx.fillStyle = ov.color; ctx.strokeStyle = ov.color; }
+                    }
+
+                    originalArc.call(this, dx, dy, dr, start, end);
+                };
+
+                // 5. FillText
+                const originalFillText = ctx.fillText;
+                ctx.fillText = function(text, x, y, maxW) {
+                     const id = 'text_' + drawCount++;
+                     ctx.save();
+                     const ov = overrides[id];
+
+                     let drawText = ov?.text || text;
+                     let drawX = x + (ov?.offX ? parseInt(ov.offX) : 0);
+                     let drawY = y + (ov?.offY ? parseInt(ov.offY) : 0);
+
+                     if(ov && ov.color) ctx.fillStyle = ov.color;
+
+                     registerHit(id, drawX, drawY, 0, 0, 'text', drawText);
+
+                     if(isEditing && ov) {
+                        ctx.save(); ctx.strokeStyle = '#bc13fe'; ctx.strokeRect(drawX, drawY-20, ctx.measureText(drawText).width, 24); ctx.restore();
+                     }
+
+                     originalFillText.call(this, drawText, drawX, drawY, maxW);
+                     ctx.restore();
+                }
+
+                // --- FRAME LOOP WRAPPER ---
+                const originalReq = window.requestAnimationFrame;
+                window.requestAnimationFrame = function(cb) {
+                    return originalReq(function(time) {
+                        // 1. Process Hits from Previous Frame
+                        if(mousePos && frameHits.length > 0) {
+                            // Pick the last one (visually on top)
+                            const topHit = frameHits[frameHits.length - 1];
+                            window.parent.postMessage({
+                                type: 'ELEMENT_SELECTED',
+                                id: topHit.id,
+                                props: topHit.props,
+                                elementType: topHit.elementType
+                            }, '*');
+                            // Reset mouse to avoid spamming
+                            mousePos = null;
+                        }
+
+                        // 2. Reset for New Frame
+                        drawCount = 0;
+                        frameHits = [];
+
+                        // 3. Call original callback
+                        cb(time);
+                    });
+                };
+
+                // Capture Clicks (Persistent)
+                window.addEventListener('mousedown', (e) => {
+                    if(!isEditing) return;
+                    const rect = document.querySelector('canvas').getBoundingClientRect();
+                    mousePos = {
+                        x: e.clientX - rect.left,
+                        y: e.clientY - rect.top
+                    };
+                    // Don't null mousePos immediately, let the frame loop pick it up
+                });
+
+            })();
+            <\/script>
+        `;
+
+        // --- FIXED RENDER LOGIC (STABILITY & FADE IN) ---
+        function renderGame(code) {
+            const wrapper = document.getElementById('game-wrapper');
+
+            // Clear but keep structure clean
+            wrapper.innerHTML = '';
+
+            // 1. Create Overlay Loader (Absolute position)
+            const loaderOverlay = document.createElement('div');
+            loaderOverlay.className = 'absolute inset-0 bg-[#111] z-10 flex items-center justify-center transition-opacity duration-500';
+            loaderOverlay.innerHTML = '<div class="iframe-loader"></div>';
+            wrapper.appendChild(loaderOverlay);
+
+            // 2. Create Iframe (Hidden initially)
+            const iframe = document.createElement('iframe');
+            iframe.id = 'game-frame';
+            iframe.className = `border-none bg-white opacity-0 transition-opacity duration-500 ${currentViewMode === 'pc' ? 'game-frame-pc' : 'game-frame-phone'}`;
+
+            // Apply width if PC mode
+            if(currentViewMode === 'pc' && globalGameWidth) {
+                iframe.style.width = globalGameWidth + '%';
+            }
+
+            iframe.sandbox = "allow-scripts allow-modals allow-pointer-lock allow-forms allow-same-origin";
+
+            // 3. Handle Load Logic
+            let isLoaded = false;
+
+            const handleLoad = () => {
+                if(isLoaded) return;
+                isLoaded = true;
+
+                // Safety focus
+                if(iframe.contentWindow) iframe.contentWindow.focus();
+
+                // Restore state
+                setTimeout(() => {
+                    if(visualOverrides && Object.keys(visualOverrides).length > 0) {
+                        iframe.contentWindow.postMessage({type: 'LOAD_OVERRIDES', data: visualOverrides}, '*');
+                    }
+                    if(globalGameSpeed !== 1.0) {
+                        iframe.contentWindow.postMessage({type: 'SET_SPEED', speed: globalGameSpeed}, '*');
+                    }
+
+                    // Fade In Effect
+                    iframe.classList.remove('opacity-0');
+                    iframe.classList.add('opacity-100');
+                    loaderOverlay.classList.add('opacity-0', 'pointer-events-none');
+
+                    setTimeout(() => loaderOverlay.remove(), 500); // Cleanup loader DOM
+                }, 300);
+            };
+
+            iframe.onload = handleLoad;
+
+            // 4. Fallback Timeout (in case onload hangs)
+            setTimeout(() => {
+                if(!isLoaded) {
+                    console.warn("Forcing iframe show via fallback...");
+                    handleLoad();
+                }
+            }, 2500);
+
+            wrapper.appendChild(iframe);
+
+            // 5. Inject Content Safely
+            try {
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                // Inject Visual Hook
+                const finalCode = code.replace('</body>', VISUAL_HOOK_SCRIPT + '</body>');
+                doc.write(finalCode);
+                doc.close();
+            } catch (e) {
+                console.error("Iframe injection error", e);
+                iframe.srcdoc = code;
+            }
+
+            // 6. Watermark Check
+            if(currentUser && currentUser.tier === 'free') {
+                const watermark = document.createElement('div');
+                watermark.className = 'aether-watermark';
+                watermark.innerHTML = '<i class="fas fa-cube mr-1"></i> MADE WITH AETHER.AI';
+                wrapper.appendChild(watermark);
+            }
+        }
+
+        // --- VISUAL EDITOR LOGIC ---
+
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data.type === 'ELEMENT_SELECTED') {
+                currentSelectionId = data.id;
+                showProperties(data.props, data.id, data.elementType);
+            }
+        });
+
+        function toggleVisualEditor() {
+            isVisualEditing = !isVisualEditing;
+            const btn = document.getElementById('visual-edit-btn');
+            const panel = document.getElementById('visual-editor-panel');
+            const frame = document.getElementById('game-frame');
+
+            if(isVisualEditing) {
+                // === SNAPSHOT FOR CANCEL ===
+                visualBackup = JSON.parse(JSON.stringify(visualOverrides));
+
+                // UI State
+                btn.classList.add('bg-neon-purple', 'text-white', 'border-purple-500');
+                btn.classList.remove('text-gray-300', 'bg-gray-800');
+                panel.classList.remove('translate-x-full'); // Slide in
+
+                // Add border to iframe to show edit mode
+                if(frame) frame.classList.add('visual-edit-active');
+
+                // Notify Iframe
+                if(frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({type: 'SET_EDIT_MODE', active: true}, '*');
+                }
+            } else {
+                // === REVERT IF NOT SAVED (implicit cancel by closing) ===
+                visualOverrides = JSON.parse(JSON.stringify(visualBackup));
+
+                // Re-apply original visuals to iframe
+                if(frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({type: 'LOAD_OVERRIDES', data: visualOverrides}, '*');
+                }
+
+                // UI State
+                btn.classList.remove('bg-neon-purple', 'text-white', 'border-purple-500');
+                btn.classList.add('text-gray-300', 'bg-gray-800');
+                panel.classList.add('translate-x-full'); // Slide out
+
+                // Remove border
+                if(frame) frame.classList.remove('visual-edit-active');
+
+                // Notify Iframe
+                if(frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({type: 'SET_EDIT_MODE', active: false}, '*');
+                }
+            }
+        }
+
+        function updateGameSpeed(val) {
+            globalGameSpeed = parseFloat(val);
+            document.getElementById('speed-display').innerText = val + 'x';
+
+            const frame = document.getElementById('game-frame');
+            if(frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({type: 'SET_SPEED', speed: val}, '*');
+            }
+
+            // Push history for undo
+            pushHistory(generatedCode, visualOverrides, globalGameSpeed);
+        }
+
+        function updateGameWidth(val) {
+            globalGameWidth = parseInt(val);
+            document.getElementById('width-display').innerText = val + '%';
+
+            if(currentViewMode === 'pc') {
+                const frame = document.getElementById('game-frame');
+                if(frame) frame.style.width = val + '%';
+            }
+        }
+
+        function showProperties(props, id, type) {
+            document.getElementById('no-selection-msg').classList.add('hidden');
+            document.getElementById('props-form').classList.remove('hidden');
+            document.getElementById('selected-id').innerText = `ID: ${id} (${type.toUpperCase()})`;
+
+            // Fill inputs
+            document.getElementById('prop-color').value = props.color || '#ffffff';
+            document.getElementById('prop-color-text').value = props.color || '#ffffff';
+            document.getElementById('prop-width').value = props.width || 0;
+            document.getElementById('prop-height').value = props.height || 0;
+
+            // Text specific
+            const textGroup = document.getElementById('text-props');
+            if(type === 'text') {
+                textGroup.classList.remove('hidden');
+                document.getElementById('prop-text').value = props.text || '';
+            } else {
+                textGroup.classList.add('hidden');
+            }
+        }
+
+        // DEBOUNCE / THROTTLE to prevent spamming iframe and history
+        let debounceTimer;
+        function throttledUpdate(key, value) {
+            clearTimeout(debounceTimer);
+            // Instant update for preview (fast)
+            updateVisualProperty(key, value, false);
+            // Delayed history push (slow)
+            debounceTimer = setTimeout(() => {
+                pushHistory(generatedCode, visualOverrides, globalGameSpeed);
+            }, 500);
+        }
+
+        function updateVisualProperty(key, value, pushToHistory = true) {
+            if(!currentSelectionId) return;
+
+            // Update local state
+            if(!visualOverrides[currentSelectionId]) visualOverrides[currentSelectionId] = {};
+            visualOverrides[currentSelectionId][key] = value;
+
+            // Sync color text input
+            if(key === 'color') {
+                document.getElementById('prop-color-text').value = value;
+                document.getElementById('prop-color').value = value;
+            }
+
+            // Send to iframe
+            const frame = document.getElementById('game-frame');
+            if(frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({
+                    type: 'APPLY_OVERRIDE',
+                    id: currentSelectionId,
+                    props: { [key]: value }
+                }, '*');
+            }
+
+            if(pushToHistory) {
+                pushHistory(generatedCode, visualOverrides, globalGameSpeed);
+            }
+        }
+
+        async function saveVisualChanges() {
+            if(!currentGameId) return;
+            if(isApiBusy) return;
+
+            // === UPDATE BACKUP ON SAVE ===
+            visualBackup = JSON.parse(JSON.stringify(visualOverrides));
+
+            const btn = document.querySelector('#props-form button') || document.querySelector('#visual-props-content button');
+            const originalText = btn.innerHTML;
+
+            isApiBusy = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SAVING...';
+
+            try {
+                const res = await fetch(`/api/game/${currentGameId}/save_visuals`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        visualData: visualOverrides,
+                        globalSettings: { speed: globalGameSpeed, width: globalGameWidth }
+                    })
+                });
+
+                if(res.status === 402) {
+                     return Swal.fire({icon:'warning', title:'Premium Required', text:'Visual editing is a paid feature.'});
+                }
+
+                if(res.ok) {
+                    Swal.fire({toast:true, position:'top-end', icon:'success', title:'Visuals & Speed Saved', background:'#222', color:'#fff'});
+                } else {
+                    throw new Error('Save failed');
+                }
+            } catch(e) {
+                Swal.fire({icon:'error', text: 'Could not save visual changes.'});
+            } finally {
+                isApiBusy = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+
+        function setViewMode(mode) {
+            const frame = document.getElementById('game-frame');
+            if(!frame) return; // Safety check
+
+            const pcBtn = document.getElementById('view-pc-btn');
+            const phoneBtn = document.getElementById('view-phone-btn');
+
+            frame.classList.remove('game-frame-pc', 'game-frame-phone');
+            frame.classList.add(`game-frame-${mode}`);
+
+            if(mode === 'pc') {
+                frame.style.width = globalGameWidth + '%';
+            } else {
+                frame.style.width = ''; // Phone class handles width
+            }
+
+            const activeBtn = mode === 'pc' ? pcBtn : phoneBtn;
+            const inactiveBtn = mode === 'pc' ? phoneBtn : pcBtn;
+
+            activeBtn.classList.add('bg-cyan-600', 'text-white');
+            activeBtn.classList.remove('hover:bg-gray-700');
+            inactiveBtn.classList.remove('bg-cyan-600', 'text-white');
+            inactiveBtn.classList.add('hover:bg-gray-700');
+
+            currentViewMode = mode;
+        }
+
+        // --- EDITING FEATURES ---
+
+        function fillAndSend(text) {
+            document.getElementById('ai-input').value = text;
+            submitAiEdit();
+        }
+
+        async function submitAiEdit() {
+            // STRICT FRONTEND LOCK
+            if (isApiBusy) return;
+
+            const input = document.getElementById('ai-input');
+            const btn = document.getElementById('ai-submit-btn');
+            const newInstruction = input.value.trim();
+            if(!newInstruction) return;
+
+            // Feature 5: Get model from edit panel
+            const modelSelect = document.getElementById('edit-model-select');
+            const selectedModel = modelSelect ? modelSelect.value : 'flash';
+
+            // LOCK UI
+            isApiBusy = true;
+            input.disabled = true;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const chat = document.getElementById('chat-history');
+            // Show user message
+            chat.innerHTML += `<div class="bg-cyan-900/30 p-3 rounded-xl text-sm text-right border border-cyan-800 mb-2 ml-4 text-cyan-100 smooth-hover transform scale-100">${newInstruction}</div>`;
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            // Show loading state
+            const loadId = 'chat-load-' + Date.now();
+            chat.innerHTML += `<div id="${loadId}" class="text-xs text-gray-500 italic mt-2"><i class="fas fa-circle-notch fa-spin mr-1"></i> Applying edits...</div>`;
+            chat.scrollTop = chat.scrollHeight;
+
+            // Construct the edit prompt
+            const currentCode = history[historyIndex].code;
+            const refinedPrompt = `Original Idea: ${currentPrompt}. \n\nCURRENT CODE: \n\n${currentCode}\n\nREQUEST: ${newInstruction}. \n\nUpdate the code to fulfill the request. Return FULL HTML code.`;
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt: refinedPrompt, model: selectedModel})
+                });
+
+                document.getElementById(loadId)?.remove();
+
+                if(res.status === 403) {
+                     chat.innerHTML += `<div class="text-red-400 text-xs p-3 bg-gray-900 rounded-xl">Edit Permission Denied. Upgrade to Developer plan to modify code.</div>`;
+                     chat.scrollTop = chat.scrollHeight;
+                     return;
+                }
+
+                if(res.status === 402 || res.status === 429) {
+                     const msg = res.status === 429 ? 'Daily Limit Reached' : 'Limit reached';
+                     chat.innerHTML += `<div class="text-red-400 text-xs p-3 bg-gray-900 rounded-xl">${msg}. Upgrade to continue.</div>`;
+                     chat.scrollTop = chat.scrollHeight;
+                     return;
+                }
+
+                const data = await res.json();
+                if(data.success) {
+                    generatedCode = data.code;
+                    // Push new code with CURRENT visuals and speed (preserve visuals across code edits)
+                    pushHistory(generatedCode, visualOverrides, globalGameSpeed);
+                    renderGame(generatedCode);
+                    chat.innerHTML += `<div class="bg-gray-800 p-3 rounded-xl text-sm text-gray-300 border border-gray-700 mb-2 mr-4">Done. Game updated.</div>`;
+                    chat.scrollTop = chat.scrollHeight;
+                }
+            } catch(e) {
+                document.getElementById(loadId)?.remove();
+                chat.innerHTML += `<div class="text-red-500 text-xs p-3 bg-gray-900 rounded-xl">Error processing edit. Please try again.</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            } finally {
+                // UNLOCK UI
+                isApiBusy = false;
+                input.disabled = false;
+                btn.disabled = false;
+                btn.innerHTML = 'APPLY';
+            }
+        }
+
+        // --- FEATURE 6: TEAM MANAGEMENT (FIXED) ---
+        function showTeamModal() {
+             document.getElementById('team-modal').classList.remove('hidden');
+             loadTeamMembers();
+        }
+
+        async function loadTeamMembers() {
+             if(!currentGameId) return;
+             const list = document.getElementById('team-list');
+             list.innerHTML = '<p class="text-xs text-gray-500 text-center">Loading...</p>';
+
+             try {
+                 const res = await fetch(`/api/game/${currentGameId}/collaborators`);
+                 const data = await res.json();
+
+                 if(data.error) {
+                     list.innerHTML = `<p class="text-red-500 text-xs text-center">${data.error}</p>`;
+                     return;
+                 }
+
+                 if(data.collaborators.length === 0) {
+                     list.innerHTML = '<p class="text-xs text-gray-500 text-center mt-4">No collaborators yet.</p>';
+                 } else {
+                     list.innerHTML = data.collaborators.map(c => `
+                        <div class="flex justify-between items-center bg-black p-2 rounded mb-2 border border-gray-800">
+                             <div class="text-xs text-gray-300">
+                                 <div>${c.email}</div>
+                                 <div class="text-[10px] ${c.status === 'pending' ? 'text-yellow-500' : 'text-green-500'} uppercase">${c.status} - ${c.role}</div>
+                             </div>
+                             <button onclick="removeCollaborator('${c.id}')" class="text-red-500 hover:text-red-400 text-xs"><i class="fas fa-trash"></i></button>
+                        </div>
+                     `).join('');
+                 }
+             } catch(e) {
+                 list.innerHTML = '<p class="text-red-500 text-xs text-center">Failed to load team.</p>';
+             }
+        }
+
+        async function loadPendingInvites() {
+            const container = document.getElementById('pending-invites-container');
+            const list = document.getElementById('pending-invites-list');
+
+            try {
+                const res = await fetch('/api/user/invites');
+                const data = await res.json();
+
+                if(data.invites && data.invites.length > 0) {
+                    container.classList.remove('hidden');
+                    list.innerHTML = data.invites.map(inv => `
+                        <div class="glass-panel p-4 rounded border border-yellow-900 flex flex-col gap-2">
+                             <div class="text-sm font-bold text-white">${inv.game_title}</div>
+                             <div class="text-xs text-gray-400">Invited by ${inv.owner_email}</div>
+                             <div class="flex gap-2 mt-2">
+                                 <button onclick="respondInvite(${inv.id}, 'accept')" class="bg-green-600 text-white px-3 py-1 rounded text-xs">Accept</button>
+                                 <button onclick="respondInvite(${inv.id}, 'deny')" class="bg-red-600 text-white px-3 py-1 rounded text-xs">Deny</button>
+                             </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.classList.add('hidden');
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function respondInvite(id, action) {
+             const res = await fetch('/api/user/invite/respond', {
+                 method: 'POST', headers: {'Content-Type': 'application/json'},
+                 body: JSON.stringify({invite_id: id, action: action})
+             });
+             if(res.ok) {
+                 Swal.fire({toast:true, icon:'success', title: action === 'accept' ? 'Joined!' : 'Denied'});
+                 loadPendingInvites();
+                 loadProjects(); // refresh list
+             }
+        }
+
+        async function submitInvite() {
+            const email = document.getElementById('invite-email').value;
+            if(!email) return Swal.fire({toast:true, icon:'error', title:'Email required'});
+
+            const btn = document.querySelector('#team-modal button.bg-blue-600');
+            btn.innerHTML = '...';
+
+            try {
+                const res = await fetch(`/api/game/${currentGameId}/invite`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email})
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    document.getElementById('invite-email').value = '';
+                    loadTeamMembers();
+                    Swal.fire({toast:true, icon:'success', title:'Invited'});
+                } else {
+                    Swal.fire({toast:true, icon:'error', title:data.error});
+                }
+            } catch(e) {
+                 Swal.fire({toast:true, icon:'error', title:'Error inviting'});
+            }
+            btn.innerHTML = 'INVITE';
+        }
+
+        async function removeCollaborator(id) {
+            if(!confirm('Remove this user?')) return;
+            const res = await fetch(`/api/game/${currentGameId}/remove_collaborator`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({collab_id: id})
+            });
+            if(res.ok) loadTeamMembers();
+        }
+
+        // --- PROJECT MANAGEMENT ---
+
+        // Metadata Management
+        function showMetadataModal() {
+            if(!currentGameId) return;
+            document.getElementById('metadata-modal').classList.remove('hidden');
+
+            // Prefill info
+            document.getElementById('meta-title').value = document.getElementById('game-title-display').innerText;
+            document.getElementById('meta-desc').value = currentPrompt;
+        }
+
+        function checkBadWords(text) {
+             const lower = text.toLowerCase();
+             for(let w of BAD_WORDS) {
+                 if(lower.includes(w)) return true;
+             }
+             return false;
+        }
+
+        async function submitMetadata() {
+            const title = document.getElementById('meta-title').value;
+            const desc = document.getElementById('meta-desc').value;
+            const identity = document.querySelector('input[name="publish_identity"]:checked')?.value || 'anon';
+
+            if(checkBadWords(title) || checkBadWords(desc)) {
+                return Swal.fire({icon:'error', text:'Content contains prohibited words.'});
+            }
+
+            const res = await fetch(`/api/project/update_metadata/${currentGameId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    title: title,
+                    description: desc,
+                    publish_identity: identity
+                })
+            });
+
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('game-title-display').innerText = title;
+                currentPrompt = desc;
+                document.getElementById('metadata-modal').classList.add('hidden');
+                Swal.fire({toast:true, icon:'success', title:'Saved'});
+            } else {
+                Swal.fire({icon:'error', text: data.message});
+            }
+        }
+
+        async function shareGame() {
+            if(!currentGameId) return Swal.fire({icon:'warning', title:'No Project', text:'Generate a game first.', background:'#222', color:'#fff'});
+
+            const res = await fetch(`/api/share/${currentGameId}`);
+            if(res.status === 402) return Swal.fire({icon:'warning', text:'Sharing is a Starter feature.', background:'#222', color:'#fff'});
+
+            if(res.status === 403) return Swal.fire({icon:'error', text:'Only the Owner can share.'});
+
+            const data = await res.json();
+            if(data.url) {
+                navigator.clipboard.writeText(data.url);
+                Swal.fire({
+                    icon:'success',
+                    title:'Share Link Created & Copied!',
+                    html:`Your game is now public:<br><a href="${data.url}" target="_blank" class="text-cyan-400 hover:text-cyan-300">${data.url.substring(0, 40)}...</a>`,
+                    background:'#222', color:'#fff',
+                    confirmButtonText: 'Great'
+                });
+
+                // === AETHER ADDITION: Update toggle UI if sharing enables public mode ===
+                const toggle = document.getElementById('public-toggle-btn');
+                toggle.innerHTML = '<i class="fas fa-globe mr-1"></i> PUBLIC';
+                toggle.classList.replace('text-gray-300', 'text-cyan-400');
+            }
+        }
+
+        function downloadGame(type) {
+            if(!currentUser) return toggleAuth(true);
+
+            if(currentUser.tier === 'free') {
+                return Swal.fire({
+                    icon:'warning',
+                    title:'Upgrade Required',
+                    text:'Downloading source code is a paid feature. You need at least STARTER version.',
+                    background:'#222', color:'#fff',
+                    showCancelButton:true,
+                    confirmButtonText:'View Plans'
+                }).then((r)=>{
+                    if(r.isConfirmed) showPage('pricing-page');
+                });
+            }
+
+            window.location.href = `/api/download/${currentGameId}?type=${type}`;
+        }
+
+        async function loadProjects() {
+            const div = document.getElementById('project-list');
+            div.innerHTML = '<p class="text-gray-500 col-span-full text-center p-10"><i class="fas fa-spinner fa-spin mr-2"></i> Loading Projects...</p>';
+            const res = await fetch('/api/projects');
+            const data = await res.json();
+
+            if(!data.projects || data.projects.length === 0) {
+                div.innerHTML = '<p class="text-gray-500 col-span-full text-center p-10">No projects found in your archive.</p>';
+                return;
+            }
+
+            div.innerHTML = data.projects.map(p => `
+                <div id="project-${p.id}" class="glass-panel p-6 rounded-xl border border-gray-700 group smooth-hover flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start">
+                             <h3 class="font-cyber text-lg text-white group-hover:text-cyan-400 smooth-hover cursor-pointer" onclick="loadProject('${p.id}')">${p.title}</h3>
+                             ${p.is_public ? '<span class="text-[10px] bg-cyan-900/30 text-cyan-400 px-2 py-1 rounded border border-cyan-800">PUBLIC</span>' : '<span class="text-[10px] bg-gray-800 text-gray-500 px-2 py-1 rounded">PRIVATE</span>'}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 line-clamp-2">${p.prompt}</p>
+                        ${p.is_shared ? `<p class="text-[10px] text-blue-400 mt-1"><i class="fas fa-user-friends"></i> Shared by ${p.author_email}</p>` : ''}
+                    </div>
+
+                    ${p.is_public ? `
+                    <div class="mt-2 text-xs text-gray-500 flex gap-3">
+                        <span><i class="fas fa-play mr-1"></i> ${p.play_count}</span>
+                        <span><i class="fas fa-heart mr-1"></i> ${p.like_count}</span>
+                    </div>` : ''}
+
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-xs text-gray-600">${p.date}</span>
+                        <div class="flex gap-3">
+                            ${!p.is_shared ? `<button onclick="deleteProject('${p.id}')" class="text-red-400 hover:text-red-300 text-sm smooth-hover"><i class="fas fa-trash-alt"></i></button>` : ''}
+                            <button onclick="loadProject('${p.id}')" class="text-cyan-400 text-xs font-bold smooth-hover hover:text-white"><i class="fas fa-play mr-1"></i> LOAD</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadProject(id) {
+            const res = await fetch(`/api/project/${id}`);
+            const data = await res.json();
+            if(data.code) {
+                currentGameId = id;
+                currentPrompt = data.prompt;
+                generatedCode = data.code;
+                document.getElementById('game-title-display').innerText = data.title;
+
+                // === AETHER FEATURE ADDITION: Restore full UI ===
+                document.getElementById('like-btn').classList.add('hidden');
+                document.getElementById('editor-sidebar').classList.remove('hidden');
+                document.getElementById('undo-btn').classList.remove('hidden');
+                document.getElementById('redo-btn').classList.remove('hidden');
+                document.getElementById('download-btn').classList.remove('hidden');
+
+                // Feature 6: Team Button Show/Hide
+                if(data.is_owner) {
+                    document.getElementById('team-btn').classList.remove('hidden');
+                } else {
+                    document.getElementById('team-btn').classList.add('hidden');
+                }
+
+                // === ACCESS CONTROL: HIDE EDIT BUTTONS FOR FREE/STARTER ===
+                if (data.can_edit_code) {
+                    document.getElementById('visual-edit-btn').classList.remove('hidden');
+                    document.getElementById('magic-btn').classList.remove('hidden');
+                } else {
+                    document.getElementById('visual-edit-btn').classList.add('hidden');
+                    document.getElementById('magic-btn').classList.add('hidden');
+                }
+
+                // === AETHER FEATURE ADDITION: Setup Toggle ===
+                const toggle = document.getElementById('public-toggle-btn');
+                toggle.classList.remove('hidden');
+                if(data.is_public) {
+                    toggle.innerHTML = '<i class="fas fa-globe mr-1"></i> PUBLIC';
+                    toggle.classList.replace('text-gray-300', 'text-cyan-400');
+                } else {
+                    toggle.innerHTML = '<i class="fas fa-lock mr-1"></i> PRIVATE';
+                    toggle.classList.replace('text-cyan-400', 'text-gray-300');
+                }
+                // Only owner can toggle
+                toggle.disabled = !data.is_owner;
+                if(!data.is_owner) toggle.style.opacity = 0.5;
+
+                // Load visual overrides
+                if(data.settings && data.settings.visual_overrides) {
+                    visualOverrides = data.settings.visual_overrides;
+                } else {
+                    visualOverrides = {};
+                }
+
+                // Load global settings
+                if(data.settings && data.settings.global_settings) {
+                    globalGameSpeed = data.settings.global_settings.speed || 1.0;
+                    globalGameWidth = data.settings.global_settings.width || 100;
+                } else {
+                    globalGameSpeed = 1.0;
+                    globalGameWidth = 100;
+                }
+
+                // Set identity UI default
+                if(data.settings && data.settings.author_display_mode) {
+                     const radio = document.querySelector(`input[name="publish_identity"][value="${data.settings.author_display_mode}"]`);
+                     if(radio) radio.checked = true;
+                }
+
+                // Update slider UI
+                const speedSlider = document.querySelector('.aether-slider[min="0.1"]');
+                if(speedSlider) {
+                    speedSlider.value = globalGameSpeed;
+                    document.getElementById('speed-display').innerText = globalGameSpeed + 'x';
+                }
+
+                const widthSlider = document.querySelector('.aether-slider[max="100"]');
+                if(widthSlider) {
+                    widthSlider.value = globalGameWidth;
+                    document.getElementById('width-display').innerText = globalGameWidth + '%';
+                }
+
+                // Load history
+                history = [];
+                pushHistory(data.code, visualOverrides, globalGameSpeed);
+
+                showPage('builder-ui');
+                renderGame(data.code);
+            }
+        }
+
+        async function deleteProject(id) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Are you sure?',
+                text: 'This project will be permanently deleted.',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'No, keep it',
+                reverseButtons: true,
+                background:'#222', color:'#fff'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const res = await fetch(`/api/project/delete/${id}`, { method: 'POST' });
+                    const data = await res.json();
+
+                    if(data.success) {
+                        Swal.fire({toast:true, position:'top-end', icon:'success', title:'Project Deleted', background:'#222', color:'#fff'});
+                        document.getElementById(`project-${id}`).remove();
+                        if (currentGameId === id) {
+                            currentGameId = null;
+                            generatedCode = "";
+                            history = [];
+                            historyIndex = -1;
+                        }
+                        loadProjects(); // Reload the list to check for empty state
+                    } else {
+                        Swal.fire({icon:'error', title:'Error', text: data.message, background:'#222', color:'#fff'});
+                    }
+                }
+            });
+        }
+
+        // Feature 7: Billing Toggle
+        function toggleBilling() {
+            const el = document.getElementById('billing-switch');
+            const isYearly = el.classList.contains('yearly');
+            const badges = document.querySelectorAll('.yearly-badge');
+
+            if(isYearly) {
+                el.classList.remove('yearly');
+                billingInterval = 'month';
+                badges.forEach(b => b.classList.add('hidden'));
+            } else {
+                el.classList.add('yearly');
+                billingInterval = 'year';
+                badges.forEach(b => b.classList.remove('hidden'));
+            }
+
+            // Update UI Prices
+            document.querySelectorAll('.price-display').forEach(d => {
+                const price = billingInterval === 'year' ? d.dataset.yearly : d.dataset.monthly;
+                const unit = billingInterval === 'year' ? '/yr' : '/mo'; // Display yearly total or stay monthly
+                // Usually Yearly price shows monthly equivalent, but request says "Yearly price (BIG)".
+                // We will show the Total Yearly Price as requested in math.
+
+                d.innerHTML = `$${price}<span class="text-xs font-normal text-gray-500">${unit}</span>`;
+            });
+        }
+
+        async function buy(tier) {
+            // Feature 2: Real Checkout
+            const res = await fetch('/api/checkout', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({tier, interval: billingInterval})
+            });
+            const data = await res.json();
+
+            if(data.success && data.url) {
+                window.location.href = data.url;
+            }
+            else if(data.error) Swal.fire({icon:'error', text: data.message, background:'#222', color:'#fff'});
+        }
+
+        // === CONTACT FORM ===
+        async function submitContact() {
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const message = document.getElementById('contact-msg').value;
+
+            if(!name || !email || !message) return Swal.fire({icon:'error', text:'All fields required.'});
+
+            const res = await fetch('/api/contact', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, email, message})
+            });
+
+            if(res.ok) {
+                Swal.fire({icon:'success', title:'Message Sent', text:'We will respond shortly.'});
+                showPage('hero-section');
+            } else {
+                Swal.fire({icon:'error', text:'Failed to send.'});
+            }
+        }
+
+        // === AETHER FEATURE ADDITION START: Gallery and Play Tracking ===
+        let galleryCache = [];
+
+        async function loadGallery() {
+            const div = document.getElementById('gallery-list');
+            div.innerHTML = '<p class="text-gray-500 col-span-full text-center p-10"><i class="fas fa-spinner fa-spin mr-2"></i> Loading Gallery...</p>';
+
+            const res = await fetch('/api/gallery');
+            const data = await res.json();
+
+            galleryCache = data.games || [];
+
+            if(!galleryCache.length) {
+                div.innerHTML = '<p class="text-gray-500 col-span-full text-center p-10">No public games yet.</p>';
+                return;
+            }
+
+            renderGalleryList(galleryCache);
+        }
+
+        function renderGalleryList(games) {
+            const div = document.getElementById('gallery-list');
+            if(games.length === 0) {
+                 div.innerHTML = '<p class="text-gray-500 col-span-full text-center p-10">No matching games found.</p>';
+                 return;
+            }
+
+            div.innerHTML = games.map(g => `
+                <div class="glass-panel p-6 rounded-xl border border-gray-700 group smooth-hover flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                             <h3 class="font-cyber text-lg text-white group-hover:text-cyan-400 smooth-hover line-clamp-1">${g.title}</h3>
+                             <span class="text-[10px] bg-gray-800 px-2 py-1 rounded text-gray-400 border border-gray-700">${g.author}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 line-clamp-3">${g.prompt_snippet}</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-xs">
+                        <div class="flex gap-3 text-gray-500">
+                             <span><i class="fas fa-play mr-1"></i> ${g.play_count}</span>
+                             <span><i class="fas fa-heart mr-1"></i> ${g.like_count}</span>
+                        </div>
+                        <button onclick="playPublicGame('${g.id}')" class="bg-cyan-900/40 text-cyan-400 hover:bg-cyan-400 hover:text-black px-4 py-2 rounded-full font-bold smooth-hover">
+                            PLAY
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterGallery() {
+            const term = document.getElementById('gallery-search').value.toLowerCase();
+            const filtered = galleryCache.filter(g => g.title.toLowerCase().includes(term));
+            renderGalleryList(filtered);
+        }
+
+        async function playPublicGame(gameId) {
+             const res = await fetch(`/api/game/public/${gameId}`);
+             if(res.status === 403) return Swal.fire({icon:'error', text:'This game is private.'});
+
+             const data = await res.json();
+
+             generatedCode = data.code;
+             currentGameId = data.id;
+             document.getElementById('game-title-display').innerText = data.title;
+
+             // Track play
+             fetch(`/api/game/${gameId}/play`, {method:'POST'});
+
+             // UI Setup for Play Mode
+             showPage('builder-ui');
+             document.getElementById('editor-sidebar').classList.add('hidden'); // Hide editor for public games
+
+             // === AETHER FEATURE ADDITION: RESTRICT GALLERY UI ===
+             document.getElementById('magic-btn').classList.add('hidden');
+             document.getElementById('visual-edit-btn').classList.add('hidden'); // Hide visual editor
+             document.getElementById('undo-btn').classList.add('hidden');
+             document.getElementById('redo-btn').classList.add('hidden');
+             document.getElementById('download-btn').classList.add('hidden');
+             document.getElementById('public-toggle-btn').classList.add('hidden'); // Hide toggle in public view
+             document.getElementById('team-btn').classList.add('hidden'); // Hide team button in public view
+
+             document.getElementById('like-btn').classList.remove('hidden'); // Show like button
+
+             // Check if already liked locally
+             if(localStorage.getItem(`liked_${gameId}`)) {
+                 document.getElementById('like-btn').classList.add('text-red-500');
+             } else {
+                 document.getElementById('like-btn').classList.remove('text-red-500');
+             }
+
+             // Reset container
+             globalGameWidth = 100;
+             setViewMode('pc');
+
+             renderGame(data.code);
+        }
+
+        async function likeCurrentGame() {
+            if(!currentGameId) return;
+            // Removed local check to allow server-side toggle (unlike support)
+
+            const btn = document.getElementById('like-btn');
+            const countDisplay = document.getElementById('like-count-display');
+
+            // Optimistic Update
+            const isLiked = btn.classList.contains('text-red-500');
+            btn.classList.toggle('text-red-500');
+
+            const res = await fetch(`/api/game/${currentGameId}/like`, {method:'POST'});
+            const data = await res.json();
+
+            if(data.success) {
+                if(data.liked) {
+                     localStorage.setItem(`liked_${currentGameId}`, 'true');
+                     btn.classList.add('text-red-500');
+                } else {
+                     localStorage.removeItem(`liked_${currentGameId}`);
+                     btn.classList.remove('text-red-500');
+                }
+                if(countDisplay) countDisplay.innerText = data.like_count;
+            }
+        }
+
+        async function togglePublicStatus() {
+            if(!currentGameId) return;
+            const btn = document.getElementById('public-toggle-btn');
+
+            // Optimistic UI update
+            const isCurrentlyPublic = btn.innerText.includes('PUBLIC');
+
+            const res = await fetch(`/api/project/toggle_public/${currentGameId}`, {method: 'POST'});
+            const data = await res.json();
+
+            if(data.success) {
+                if(data.is_public) {
+                    btn.innerHTML = '<i class="fas fa-globe mr-1"></i> PUBLIC';
+                    btn.classList.replace('text-gray-300', 'text-cyan-400');
+                    Swal.fire({toast:true, position:'top', icon:'success', title:'Game is now Public', background:'#222', color:'#fff'});
+                } else {
+                    btn.innerHTML = '<i class="fas fa-lock mr-1"></i> PRIVATE';
+                    btn.classList.replace('text-cyan-400', 'text-gray-300');
+                    Swal.fire({toast:true, position:'top', icon:'info', title:'Game is now Private', background:'#222', color:'#fff'});
+                }
+            }
+        }
+               // === AETHER FEATURE ADDITION END ===
+
+        // --- INIT ---
+        // === AETHER FIX: Ensure secure and orderly loading ===
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Force Hide Everything initially via CSS, now handled by logic
+            await checkAuthStatus();
+
+            // Artificial delay for smooth animation (optional, improves feel)
+            setTimeout(() => {
+                document.getElementById('app-loader').style.display = 'none';
+                showPage('hero-section'); // Explicitly show the landing page
+            }, 800);
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.get('mock_success') === 'true') {
+            Swal.fire({icon:'success', title:'System Upgrade Complete', text:'Your account capabilities have been expanded.', background:'#222', color:'#fff'})
+            .then(() => window.history.replaceState({}, document.title, "/"));
+        }
+    </script>
+</body>
+</html>
